@@ -137,6 +137,34 @@ export interface AppEvent {
 
 export type ReviewKind = 'DAILY_ANALYSIS' | 'SCENARIO';
 
+export interface ShortsContent {
+  title: string;
+  description: string;
+  hashtags: string[];
+}
+
+export type ShortsShotType =
+  | 'TODAYS_GAME'
+  | 'TODAYS_RESULT'
+  | 'AI_RANKING'
+  | 'AI_FLOW'
+  | 'DAILY_AI_REVIEW'
+  | 'DAY_COMPLETE';
+
+export interface ShortsShot {
+  id: ID;
+  type: ShortsShotType;
+  title: string;
+  order: number;
+  duration: number;
+  enabled: boolean;
+}
+
+export interface ShortsTimeline {
+  shots: ShortsShot[];
+  totalDuration: number;
+}
+
 export interface ExternalReview {
   id: ID;
   sessionId: ID;
@@ -144,6 +172,7 @@ export interface ExternalReview {
   createdAt: number;
   rawText: string;
   parsedSummary: string;
+  shorts?: ShortsContent;
 }
 
 // ===== Game definition (configuration based) =====
