@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useApp } from '../app/store';
 import { Btn, Card, Field, Money, NumInput, Pill, SectionTitle, Select, Stat, TextInput } from '../components/ui';
 import { CURRENCIES, fmtMoney, fmtPct, todayStr } from '../utils/format';
-import { rankAI } from '../utils/statistics';
+import { computeProjectCumulativePL, rankAI } from '../utils/statistics';
 import { aiColor } from '../components/charts';
 import { Bot, Crown, FolderKanban, Play, Skull } from 'lucide-react';
 
@@ -61,11 +61,14 @@ export default function HomePage() {
     );
   }
 
-  const projectPL = sessions.reduce((a, s) => {
-    if (s.status === 'ENDED') return a + s.actualProfitLoss;
-    if (s.id === session?.id && userStats) return a + userStats.actualProfitLoss;
-    return a;
-  }, 0);
+  const projectPL = computeProjectCumulativePL(
+    sessions,
+    session?.id ?? null,
+    userStats?.actualProfitLoss ?? null,
+  );
+  const projectReturn = project.startCapital > 0
+    ? (projectPL / project.startCapital) * 100
+    : 0;
   const top3 = rankAI(aiStates, 'pl').slice(0, 3);
   const eliminated = aiStates.filter((s) => s.eliminated).length;
   const statusPill = !session ? <Pill tone="dim">세션 없음</Pill>
@@ -92,7 +95,7 @@ export default function HomePage() {
             : session?.endBalance != null
               ? <Money value={session.endBalance} currency={settings.currency} decimals={settings.decimals} />
               : '-'}
-          sub={session ? `오늘 시작 자금 ${fmtMoney(session.startBalance, settings.currency, settings.decimals)}` : '세션을 시작하세요'}
+          sub={session ? `Daily Start ${fmtMoney(session.startBalance, settings.currency, settings.decimals)}` : '세션을 시작하세요'}
         />
         <Stat
           label="오늘 P/L"
@@ -101,10 +104,21 @@ export default function HomePage() {
           sub={userStats ? fmtPct(userStats.dailyReturn) : ''}
         />
         <Stat
+          label="프로젝트 시작 자금"
+          value={<Money value={project.startCapital} currency={project.currency} decimals={settings.decimals} />}
+          sub="프로젝트 생성 시 최초 설정값 · Daily Start와 별개"
+        />
+        <Stat
           label="프로젝트 누적 P/L"
-          value={<Money value={projectPL} currency={settings.currency} decimals={settings.decimals} signed />}
+          value={<Money value={projectPL} currency={project.currency} decimals={settings.decimals} signed />}
           tone={projectPL > 0 ? 'good' : projectPL < 0 ? 'bad' : 'default'}
-          sub={`세션 ${sessions.length}일 · 프로젝트 최초 자금 ${fmtMoney(project.startCapital, project.currency, settings.decimals)}`}
+          sub={`실제 베팅 P/L만 합산 · ${sessions.length}일`}
+        />
+        <Stat
+          label="프로젝트 수익률"
+          value={fmtPct(projectReturn)}
+          tone={projectReturn > 0 ? 'good' : projectReturn < 0 ? 'bad' : 'default'}
+          sub="누적 P/L ÷ 프로젝트 시작 자금"
         />
         <Stat
           label="현재 라운드"
