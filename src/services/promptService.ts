@@ -1,5 +1,5 @@
 import type {
-  AIProfile, AIRoundRecord, DailySession, ExternalReview, GameDefinition, Project, Round, ShortsContent, ShortsShot, ShortsShotType, ShortsTimeline,
+  AIProfile, AIRoundRecord, DailySession, ExternalReview, GameDefinition, Project, Round, ShortsContent, ShortsShot, ShortsTimeline,
 } from '../types';
 import { optionLabel } from '../data/games';
 import { computeUserStats, type DailyAIState } from '../utils/statistics';
