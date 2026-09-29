@@ -9,7 +9,7 @@ import { buildBlankAI } from '../data/seedAI';
 import { getGame } from '../data/games';
 import * as svc from '../services/sessionService';
 import * as backup from '../services/backupService';
-import { newReview, selectRandomMeetingParticipants, type MeetingParticipantSelectionMethod, type ParticipantRecommendation } from '../services/promptService';
+import { newReview, parseShortsContent, selectRandomMeetingParticipants, type MeetingParticipantSelectionMethod, type ParticipantRecommendation } from '../services/promptService';
 import {
   computeAllAIStates, computeUserStats, type DailyAIState, type UserStats,
 } from '../utils/statistics';
