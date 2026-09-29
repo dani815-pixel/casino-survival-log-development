@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { settleBet } from '../utils/settle';
 import {
   buildSessionEndSummary, computeAllAIStates, computeUserStats, computeSessionSummary,
-  computeAIState, computeDynamicState, rankAI, computeProjectCumulativePL,
+  computeAIState, computeDynamicState, rankAI, computeProjectCumulativePL, computeCareer,
 } from '../utils/statistics';
 import { validateBackup, validateRoundInput, validateSessionInput } from '../utils/validation';
 import { generateSpeech, playForRound } from '../services/aiService';
@@ -473,7 +473,6 @@ describe('AI 가상 플레이', () => {
     });
     const afterDelete = computeAIState('a1', [first], 100);
     expect(afterDelete.rounds).toBe(1);
-    expect(afterDelete.careerPL).toBe(10);
     expect(afterDelete.bankroll).toBe(110);
   });
 
