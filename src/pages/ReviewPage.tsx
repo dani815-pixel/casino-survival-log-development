@@ -23,6 +23,17 @@ export default function ReviewPage() {
   const [projectBundle, setProjectBundle] = useState<ProjectBundle | null>(null);
 
   useEffect(() => {
+    const activeIds = aiProfiles.filter((p) => p.active).map((p) => p.id);
+    const current = session?.meetingParticipants?.length
+      ? session.meetingParticipants
+      : app.settings.meeting.participants;
+    setSelectedAI(current.filter((id) => activeIds.includes(id)).slice(0, 4));
+    setRecommendations([]);
+    setRecommendationPaste('');
+    setSelectionMode('MANUAL');
+  }, [session?.id, session?.meetingParticipants, app.settings.meeting.participants, aiProfiles]);
+
+  useEffect(() => {
     let cancelled = false;
     if (!project) {
       setProjectBundle(null);
@@ -262,7 +273,11 @@ export default function ReviewPage() {
             {recommendations.length > 0 && (
               <div className="space-y-1.5">
                 {recommendations.map((r) => (
-                  <button key={r.aiId} type="button" className="w-full rounded-lg bg-[#0c1220] p-2 text-left ring-1 ring-white/10" onClick={() => setSelectedAI((prev) => prev.includes(r.aiId) ? prev.filter((id) => id !== r.aiId) : prev.length < 4 ? [...prev, r.aiId] : prev)}>
+                  <button key={r.aiId} type="button" className="w-full rounded-lg bg-[#0c1220] p-2 text-left ring-1 ring-white/10" onClick={() => setSelectedAI((prev) => {
+                        const next = prev.includes(r.aiId) ? prev.filter((id) => id !== r.aiId) : prev.length < 4 ? [...prev, r.aiId] : prev;
+                        if (recommendations.length > 0) setSelectionMode('HYBRID');
+                        return next;
+                      })}>
                     <div className="flex items-center gap-2 text-xs font-bold text-slate-200">
                       <span className={selectedAI.includes(r.aiId) ? 'text-emerald-300' : 'text-slate-500'}>{selectedAI.includes(r.aiId) ? '☑' : '☐'}</span>
                       {aiProfiles.find((p) => p.id === r.aiId)?.name ?? r.aiId}
@@ -276,7 +291,11 @@ export default function ReviewPage() {
         )}
         <div className="mt-3 space-y-1.5">
           {aiProfiles.filter((p) => p.active).map((p) => (
-            <button key={p.id} type="button" className={`flex w-full items-center justify-between rounded-lg p-2 text-left ring-1 ${selectedAI.includes(p.id) ? 'bg-emerald-500/10 ring-emerald-400/30' : 'bg-[#0c1220] ring-white/10'}`} onClick={() => setSelectedAI((prev) => prev.includes(p.id) ? prev.filter((id) => id !== p.id) : prev.length < 4 ? [...prev, p.id] : prev)}>
+            <button key={p.id} type="button" className={`flex w-full items-center justify-between rounded-lg p-2 text-left ring-1 ${selectedAI.includes(p.id) ? 'bg-emerald-500/10 ring-emerald-400/30' : 'bg-[#0c1220] ring-white/10'}`} onClick={() => setSelectedAI((prev) => {
+                const next = prev.includes(p.id) ? prev.filter((id) => id !== p.id) : prev.length < 4 ? [...prev, p.id] : prev;
+                if (recommendations.length > 0) setSelectionMode('HYBRID');
+                return next;
+              })}>
               <span className="text-xs font-bold text-slate-200">{p.name}</span>
               <span className="text-[10px] text-slate-500">{p.role}</span>
             </button>
