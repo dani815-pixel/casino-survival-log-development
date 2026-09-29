@@ -151,6 +151,20 @@ export function createDefaultShortsTimeline(duration = 30): ShortsTimeline {
   return { shots, totalDuration: safeDuration };
 }
 
+export interface ShortsReviewData {
+  keyRound: Round | null;
+  summaryLines: string[];
+}
+
+export function buildShortsReviewData(rounds: Round[], analysis?: ExternalReview | null): ShortsReviewData {
+  const keyRound = rounds.length
+    ? [...rounds].sort((a, b) => Math.abs(b.actualProfitLoss ?? 0) - Math.abs(a.actualProfitLoss ?? 0))[0] ?? null
+    : null;
+  const source = analysis?.parsedSummary || analysis?.rawText || '';
+  const summaryLines = source.split(/\r?\n/).map((line) => line.trim()).filter(Boolean).slice(0, 3);
+  return { keyRound, summaryLines };
+}
+
 export function getNextEnabledShortsShotIndex(
   shots: ShortsShot[],
   currentIndex: number,
