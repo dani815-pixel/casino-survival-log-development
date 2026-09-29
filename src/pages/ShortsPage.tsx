@@ -316,8 +316,7 @@ export default function ShortsPage() {
           {bc.showBalance ? fmtSigned(userStats.todayPL, settings.currency, settings.decimals) : '비공개'}
         </p>
         <p className="mt-1 text-[10px] font-semibold text-white/45">{rounds.length}R · {ended ? '세션 종료' : '세션 진행 중'}</p>
-         <div className="mt-3 h-1 overflow-hidden rounded-full bg-white/10"><div className="h-full w-2/3 rounded-full bg-[#ffd97a]" /></div>
-      </div>
+       </div>
       {reviewData.keyRound ? (
         <div className="mt-3 rounded-2xl border border-white/10 bg-black/20 p-3.5">
           <p className="text-[10px] font-black tracking-[0.16em] text-[#ffd97a]">KEY MOMENT · R{reviewData.keyRound.roundNumber}</p>
