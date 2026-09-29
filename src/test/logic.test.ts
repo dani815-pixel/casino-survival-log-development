@@ -19,7 +19,7 @@ const bac = getGame('baccarat')!;
 function mkSession(over: Partial<DailySession> = {}): DailySession {
   return {
     id: 's1', projectId: 'p1', date: '2026-01-01', casino: 'Test', gameId: 'dragon-tiger',
-    table: 'T-1', startBalance: 100, stopLoss: null, winCut: null, memo: '',
+    table: 'T-1', startBalance: 100, stopLoss: null, winCut: null, memo: '', meetingParticipants: [],
     status: 'PLAYING', endBalance: null, calculatedEndBalance: null, endedAt: null,
     totalRounds: 0, predictionCount: 0, actualBetCount: 0, actualProfitLoss: 0,
     createdAt: 1, updatedAt: 1, ...over,
@@ -456,6 +456,17 @@ describe('Meeting 외부 AI 분석 연결', () => {
 });
 
 // ===== Meeting 설정 / 프로젝트 격리 =====
+
+describe('Daily Session 회의 참여자 저장', () => {
+  it('Daily Session은 회의 참여자를 날짜별로 보존할 수 있다', () => {
+    const session = mkSession({ meetingParticipants: ['a1', 'a2', 'a3', 'a4'] });
+    expect(session.meetingParticipants).toEqual(['a1', 'a2', 'a3', 'a4']);
+  });
+
+  it('회의 참여자는 최대 4명으로 정규화된다', () => {
+    expect(normalizeMeetingParticipants(['a1', 'a2', 'a3', 'a4', 'a5'], ['a1', 'a2', 'a3', 'a4', 'a5'])).toEqual(['a1', 'a2', 'a3', 'a4']);
+  });
+});
 
 describe('Meeting 참여자 선정', () => {
   it('랜덤 선정은 활성 AI 중 최대 4명을 중복 없이 반환한다', () => {
