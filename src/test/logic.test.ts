@@ -992,6 +992,11 @@ describe('Shorts Timeline / 외부 AI 콘텐츠', () => {
     expect(parseShortsContent('{"dailyAnalysis":"기존 결과"}')).toBeUndefined();
     expect(parseShortsContent('일반 텍스트 분석')).toBeUndefined();
   });
+  it('쇼츠 메타데이터의 잘못된 값은 무시하고 해시태그는 중복 제거한다', () => {
+    expect(parseShortsContent(JSON.stringify({
+      shorts: { title: 123, description: null, hashtags: ['#카지노', 7, '#카지노', ''] },
+    }))).toEqual({ title: '', description: '', hashtags: ['#카지노'] });
+  });
 });
 
 describe('Shorts 외부 AI 분석 연결', () => {
