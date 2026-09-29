@@ -1,8 +1,10 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useApp } from '../app/store';
 import { Btn, Card, Empty, Pill, TextArea, copyText } from '../components/ui';
-import { buildDailyAnalysisPrompt, buildParticipantRecommendationPrompt, buildScenarioPrompt, parseParticipantRecommendations, selectRandomMeetingParticipants, type ParticipantRecommendation, type PromptBundle } from '../services/promptService';
+import { buildDailyAnalysisPrompt, buildParticipantRecommendationPrompt, buildScenarioPrompt, getPreviousEndedSession, getLatestDailyAnalysis, parseParticipantRecommendations, selectRandomMeetingParticipants, type ParticipantRecommendation, type PromptBundle } from '../services/promptService';
 import { computeAllAIStates } from '../utils/statistics';
+import { getGame } from '../data/games';
+import { getProjectBundle, type ProjectBundle } from '../services/queries';
 import { Check, ClipboardCopy, ClipboardPaste, FileText, RefreshCw, Shuffle, Sparkles, Trash2, Users } from 'lucide-react';
 import { timeStr, dateStr } from '../utils/format';
 
@@ -18,9 +20,26 @@ export default function ReviewPage() {
   const [recommendationPaste, setRecommendationPaste] = useState('');
   const [recommendations, setRecommendations] = useState<ParticipantRecommendation[]>([]);
   const [recommendationOpen, setRecommendationOpen] = useState(false);
+  const [projectBundle, setProjectBundle] = useState<ProjectBundle | null>(null);
 
-  const analysisReviews = reviews.filter((r) => r.kind === 'DAILY_ANALYSIS').sort((a, b) => b.createdAt - a.createdAt);
-  const scenarioReviews = reviews.filter((r) => r.kind === 'SCENARIO').sort((a, b) => b.createdAt - a.createdAt);
+  useEffect(() => {
+    let cancelled = false;
+    if (!project) {
+      setProjectBundle(null);
+      return;
+    }
+    void getProjectBundle(project.id).then((bundle) => {
+      if (!cancelled) setProjectBundle(bundle);
+    });
+    return () => { cancelled = true; };
+  }, [project?.id, session?.id]);
+
+  const analysisReviews = reviews
+    .filter((r) => r.sessionId === session?.id && r.kind === 'DAILY_ANALYSIS')
+    .sort((a, b) => b.createdAt - a.createdAt);
+  const scenarioReviews = reviews
+    .filter((r) => r.sessionId === session?.id && r.kind === 'SCENARIO')
+    .sort((a, b) => b.createdAt - a.createdAt);
   const latestAnalysis = analysisReviews[0] ?? null;
   const latestScenario = scenarioReviews[0] ?? null;
 
@@ -36,13 +55,69 @@ export default function ReviewPage() {
     };
   }, [project, session, game, rounds, aiProfiles, aiRecords, settings]);
 
+  const previousSession = useMemo(
+    () => session ? getPreviousEndedSession(app.sessions, session.id) : null,
+    [app.sessions, session?.id],
+  );
+  const previousReviews = useMemo(
+    () => previousSession && projectBundle
+      ? projectBundle.reviews.filter((r) => r.sessionId === previousSession.id)
+      : [],
+    [previousSession, projectBundle],
+  );
+  const previousAnalysis = previousSession ? getLatestDailyAnalysis(previousReviews, previousSession.id) : '';
+  const previousScenario = previousSession
+    ? [...previousReviews]
+      .filter((r) => r.sessionId === previousSession.id && r.kind === 'SCENARIO')
+      .sort((a, b) => b.createdAt - a.createdAt)[0]?.rawText ?? ''
+    : '';
+
+  const recommendationSource = useMemo(() => {
+    if (!bundle) return null;
+    if (!previousSession || !projectBundle) {
+      return {
+        bundle,
+        analysis: latestAnalysis?.rawText ?? '',
+        scenario: latestScenario?.rawText ?? '',
+        participants: session?.meetingParticipants ?? [],
+      };
+    }
+    const sourceGame = getGame(previousSession.gameId);
+    if (!sourceGame) {
+      return { bundle, analysis: previousAnalysis, scenario: previousScenario, participants: previousSession.meetingParticipants ?? [] };
+    }
+    const sourceRounds = projectBundle.rounds.filter((r) => r.sessionId === previousSession.id);
+    const sourceRecords = projectBundle.aiRecords.filter((r) => r.sessionId === previousSession.id);
+    const sourceProfiles = aiProfiles.filter((p) => p.active);
+    const sourceBundle: PromptBundle = {
+      project,
+      session: previousSession,
+      game: sourceGame,
+      rounds: sourceRounds,
+      profiles: sourceProfiles,
+      aiRecords: sourceRecords,
+      aiStates: computeAllAIStates(sourceProfiles.map((p) => p.id), sourceRecords, previousSession.startBalance),
+      currency: settings.currency,
+      decimals: settings.decimals,
+    };
+    return { bundle: sourceBundle, analysis: previousAnalysis, scenario: previousScenario, participants: previousSession.meetingParticipants ?? [] };
+  }, [bundle, previousSession, projectBundle, previousAnalysis, previousScenario, latestAnalysis, latestScenario, session?.meetingParticipants, aiProfiles, project, settings.currency, settings.decimals]);
+
   const analysisPrompt = useMemo(
     () => (bundle ? buildDailyAnalysisPrompt(bundle, settings.promptTemplates.analysis) : ''),
     [bundle, settings.promptTemplates.analysis],
   );
   const participantPrompt = useMemo(
-    () => (bundle ? buildParticipantRecommendationPrompt(bundle, aiProfiles.filter((p) => p.active), latestAnalysis?.rawText ?? '', latestScenario?.rawText ?? '') : ''),
-    [bundle, aiProfiles, latestAnalysis, latestScenario],
+    () => recommendationSource
+      ? buildParticipantRecommendationPrompt(
+        recommendationSource.bundle,
+        aiProfiles.filter((p) => p.active),
+        recommendationSource.analysis,
+        recommendationSource.scenario,
+        recommendationSource.participants,
+      )
+      : '',
+    [recommendationSource, aiProfiles],
   );
   const scenarioPrompt = useMemo(
     () => (bundle && latestAnalysis ? buildScenarioPrompt(bundle, settings.promptTemplates.scenario, latestAnalysis.rawText) : ''),
@@ -138,7 +213,7 @@ export default function ReviewPage() {
       {/* 3. Next Meeting AI Selection */}
       <Card title="3. 다음 회의 AI 선정" right={<Pill tone="good">최대 4명</Pill>}>
         <p className="mb-3 text-[11px] leading-relaxed text-slate-500">
-          랜덤으로 선정하거나 외부 AI 추천을 참고해 직접 수정할 수 있습니다. 외부 AI 추천은 현재 세션의 분석/시나리오와 활성 AI 프로필을 기준으로 합니다.
+          랜덤으로 선정하거나 외부 AI 추천을 참고해 직접 수정할 수 있습니다. 이전 Daily Session이 있으면 그 세션의 실제 기록·분석·시나리오·직전 참여자를 추천 기준으로 사용합니다.
         </p>
         <div className="grid grid-cols-2 gap-2">
           <Btn variant="ghost" onClick={() => {
@@ -212,7 +287,7 @@ export default function ReviewPage() {
 
       {/* 4. Next-Day Scenario */}
       <Card
-        title="3. Next-Day Scenario Prompt"
+        title="4. Next-Day Scenario Prompt"
         right={latestAnalysis ? <Pill tone="good">활성</Pill> : <Pill tone="dim">분석 저장 후 활성화</Pill>}
       >
         <p className="mb-3 text-[11px] leading-relaxed text-slate-500">
