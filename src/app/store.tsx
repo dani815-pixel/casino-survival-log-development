@@ -294,7 +294,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
     (input: svc.StartSessionInput) =>
       run(async () => {
         if (!project) return;
-        await svc.startSession(project, input);
+        const previousSession = [...sessions].filter((s) => s.status === 'ENDED').sort((a, b) => b.createdAt - a.createdAt)[0];
+        await svc.startSession(project, input, previousSession);
         await loadProjectData(project.id);
         const aiCount = aiProfiles.filter((p) => p.active).length;
         notify(`세션 시작 · 사용자와 AI ${aiCount}명이 각각 시작 금액으로 출발합니다`);
