@@ -6,7 +6,7 @@ import {
 } from '../utils/statistics';
 import { validateBackup, validateRoundInput, validateSessionInput } from '../utils/validation';
 import { generateSpeech, playForRound } from '../services/aiService';
-import { buildParticipantRecommendationPrompt, buildSessionDataSection, createDefaultShortsTimeline, getLatestDailyAnalysis, getPreviousEndedSession, isReviewStale, normalizeShortsTimeline, parseParticipantRecommendations, parseShortsContent, selectRandomMeetingParticipants } from '../services/promptService';
+import { buildParticipantRecommendationPrompt, buildSessionDataSection, createDefaultShortsTimeline, getLatestDailyAnalysis, getNextEnabledShortsShotIndex, getPreviousEndedSession, isReviewStale, normalizeShortsTimeline, parseParticipantRecommendations, parseShortsContent, selectRandomMeetingParticipants } from '../services/promptService';
 import { isLatestProjectLoad, normalizeMeetingParticipants, resolveMeetingParticipants } from '../app/store';
 import { getGame } from '../data/games';
 import type { AIProfile, AIRoundRecord, DailySession, Round } from '../types';
@@ -897,6 +897,26 @@ describe('Meeting 참여자 설정', () => {
 });
 
 // ===== Shorts / 외부 AI 분석 연결 =====
+
+describe('Shorts Preview sequence', () => {
+  it('다음 활성 화면을 찾아 OFF 화면을 건너뛴다', () => {
+    const timeline = createDefaultShortsTimeline(30);
+    const shots = timeline.shots.map((shot, i) => ({ ...shot, enabled: i !== 1 && i !== 3 }));
+    expect(getNextEnabledShortsShotIndex(shots, 0)).toBe(2);
+    expect(getNextEnabledShortsShotIndex(shots, 2)).toBe(4);
+  });
+
+  it('마지막 활성 화면에서는 다음 화면이 없다', () => {
+    const timeline = createDefaultShortsTimeline(30);
+    expect(getNextEnabledShortsShotIndex(timeline.shots, 5)).toBeNull();
+  });
+
+  it('모든 화면이 OFF이면 재생 대상이 없다', () => {
+    const timeline = createDefaultShortsTimeline(30);
+    const shots = timeline.shots.map((shot) => ({ ...shot, enabled: false }));
+    expect(getNextEnabledShortsShotIndex(shots, -1)).toBeNull();
+  });
+});
 
 describe('Shorts Timeline / 외부 AI 콘텐츠', () => {
   it('기본 Shorts Timeline은 6개 화면과 전체 30초를 생성한다', () => {
