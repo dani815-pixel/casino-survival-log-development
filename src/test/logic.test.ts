@@ -393,6 +393,35 @@ describe('JSON Import 검증', () => {
     bad.data.rounds[0]!.bettingAmount = -10;
     expect(validateBackup(bad).ok).toBe(false);
   });
+  it('세션의 actualProfitLoss/calculatedEndBalance/endBalanceMismatch 필드를 보존 가능한 형태로 검증한다', () => {
+    const good = structuredClone(valid);
+    good.data.sessions[0]!.actualProfitLoss = -25;
+    good.data.sessions[0]!.calculatedEndBalance = 75;
+    good.data.sessions[0]!.endBalance = 80;
+    good.data.sessions[0]!.endBalanceMismatch = true;
+    expect(validateBackup(good).ok).toBe(true);
+
+    const badNumber = structuredClone(good);
+    badNumber.data.sessions[0]!.actualProfitLoss = Number.NaN;
+    expect(validateBackup(badNumber).ok).toBe(false);
+
+    const badFlag = structuredClone(good);
+    badFlag.data.sessions[0]!.endBalanceMismatch = 'true';
+    expect(validateBackup(badFlag).ok).toBe(false);
+  });
+
+  it('라운드 actualProfitLoss가 숫자가 아니면 백업을 거부한다', () => {
+    const bad = structuredClone(valid);
+    bad.data.rounds[0]!.actualProfitLoss = '10';
+    expect(validateBackup(bad).ok).toBe(false);
+  });
+
+  it('Prediction Only의 null actualProfitLoss는 정상 백업으로 허용한다', () => {
+    const good = structuredClone(valid);
+    good.data.rounds[0]!.actualProfitLoss = null;
+    expect(validateBackup(good).ok).toBe(true);
+  });
+
   it('형식이 깨진 JSON은 실패한다', () => {
     expect(validateBackup('not-json').ok).toBe(false);
     expect(validateBackup({ schemaVersion: 1 }).ok).toBe(false);
