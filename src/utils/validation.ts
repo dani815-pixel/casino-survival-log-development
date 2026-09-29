@@ -116,6 +116,7 @@ export function validateBackup(data: unknown): { ok: boolean; errors: string[] }
     }
   }
   for (const p of arr('aiProfiles')) {
+    if (!projects.has(p.projectId as string)) errors.push('존재하지 않는 프로젝트를 참조하는 AI 프로필이 있습니다.');
     for (const k of ['aggression', 'conservatism', 'trendFollowing', 'reversalPreference', 'volatilityTolerance', 'passPreference']) {
       const v = p[k];
       if (typeof v !== 'number' || v < 0 || v > 100) errors.push(`AI 능력치(${k})는 0~100 사이 숫자여야 합니다.`);
@@ -139,9 +140,18 @@ export function validateBackup(data: unknown): { ok: boolean; errors: string[] }
     if (roundKey.has(key)) errors.push('roundNumber가 중복된 라운드가 있습니다.');
     roundKey.add(key);
   }
+  const sessionById = new Map(arr('sessions').map((s) => [s.id as string, s]));
+  const roundById = new Map(arr('rounds').map((r) => [r.id as string, r]));
+  const aiById = new Map(arr('aiProfiles').map((p) => [p.id as string, p]));
   for (const r of arr('aiRecords')) {
     if (!rounds.has(r.roundId as string)) errors.push('roundId가 존재하지 않는 AI 기록이 있습니다.');
     if (!ais.has(r.aiId as string)) errors.push('존재하지 않는 AI의 기록이 있습니다.');
+    const session = sessionById.get(r.sessionId as string);
+    const round = roundById.get(r.roundId as string);
+    const ai = aiById.get(r.aiId as string);
+    if (!session) errors.push('sessionId가 존재하지 않는 AI 기록이 있습니다.');
+    if (round && round.sessionId !== r.sessionId) errors.push('AI 기록과 라운드의 sessionId가 일치하지 않습니다.');
+    if (session && ai && ai.projectId !== session.projectId) errors.push('AI 기록의 AI와 세션이 서로 다른 프로젝트를 참조합니다.');
   }
   for (const e of (d.events as Record<string, unknown>[])) {
     if (!sessions.has(e.sessionId as string)) errors.push('sessionId가 존재하지 않는 이벤트가 있습니다.');
