@@ -193,22 +193,25 @@ export function AppProvider({ children }: { children: ReactNode }) {
     localStorage.setItem('csj:lastTab', t);
   }, []);
 
-  // 미팅 참여자 기본값: 활성 AI 앞 4명
+  // 미팅 참여자는 현재 프로젝트의 활성 AI만 참조한다.
+  // 프로젝트 전환 시 이전 프로젝트 AI ID가 남아 있지 않도록 정리한다.
   useEffect(() => {
     if (!ready || aiProfiles.length === 0) return;
-    if (settings.meeting.participants.length > 0) return;
-    const first4 = aiProfiles.filter((p) => p.active).slice(0, 4).map((p) => p.id);
-    if (first4.length === 0) return;
+    const activeIds = aiProfiles.filter((p) => p.active).map((p) => p.id);
+    const current = settings.meeting.participants.filter((id) => activeIds.includes(id)).slice(0, 4);
+    const next = current.length > 0 ? current : activeIds.slice(0, 4);
+    if (
+      next.length === settings.meeting.participants.length &&
+      next.every((id, i) => id === settings.meeting.participants[i])
+    ) return;
     const merged: AppSettings = {
       ...settings,
-      meeting: { ...settings.meeting, participants: first4 },
+      meeting: { ...settings.meeting, participants: next },
       updatedAt: Date.now(),
     };
     setSettings(merged);
     void db.put('settings', merged);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [ready, aiProfiles]);
-
+  }, [ready, aiProfiles, settings.meeting.participants]);
   // ===== derived =====
   const game = useMemo(() => (session ? getGame(session.gameId) : undefined), [session]);
   const userStats = useMemo(() => (session ? computeUserStats(session, rounds) : null), [session, rounds]);
