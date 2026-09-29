@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import * as db from '../db/db';
 import type {
   AIProfile, AIRoundRecord, AppEvent, AppSettings, DailySession,
@@ -103,6 +103,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [ready, setReady] = useState(false);
   const [tab, setTabState] = useState<Tab>('home');
   const [toast, setToast] = useState<{ id: number; msg: string } | null>(null);
+  const projectLoadRequestRef = useRef(0);
   const [projects, setProjects] = useState<Project[]>([]);
   const [project, setProject] = useState<Project | null>(null);
   const [sessions, setSessions] = useState<DailySession[]>([]);
@@ -153,18 +154,23 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const loadProjectData = useCallback(
     async (pid: string) => {
+      const requestId = ++projectLoadRequestRef.current;
       const ss = (await db.byIndex<DailySession>('sessions', 'projectId', pid)).sort(
         (a, b) => a.createdAt - b.createdAt,
       );
       const profs = (await db.byIndex<AIProfile>('aiProfiles', 'projectId', pid)).sort(
         (a, b) => a.createdAt - b.createdAt,
       );
+      if (requestId !== projectLoadRequestRef.current) return;
       setSessions(ss);
       setAiProfiles(profs);
       const cur = [...ss].reverse().find((s) => s.status !== 'ENDED') ?? ss[ss.length - 1] ?? null;
       setSession(cur);
       if (cur) await reloadChildren(cur);
-      else {
+      if (requestId !== projectLoadRequestRef.current) return;
+      if (cur) {
+        // reloadChildren may have completed after another project load started.
+      } else {
         setRounds([]); setAiRecords([]); setReviews([]); setEvents([]);
         setActiveTable(null); setActiveShoe(null);
       }
