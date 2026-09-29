@@ -495,7 +495,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
             recommendations: recommendations.slice(0, 4),
           },
         });
-        await reloadChildren(session);
+        await reloadChildren(updatedSession);
         notify(`다음 회의 참가 AI ${selected.length}명 확정`);
       }),
     [session, aiProfiles, settings.meeting, updateSettings, run, reloadChildren, notify],
