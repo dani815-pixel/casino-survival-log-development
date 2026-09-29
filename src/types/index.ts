@@ -29,6 +29,8 @@ export interface DailySession {
   stopLoss: number | null;
   winCut: number | null;
   memo: string;
+  // 해당 날짜 회의의 최종 참여 AI (최대 4명)
+  meetingParticipants: ID[];
   status: SessionStatus;
   // 종료 시 저장되는 최종 잔액 (사용자가 확인/수정 가능한 입력값)
   endBalance: number | null;
