@@ -115,6 +115,9 @@ export function validateBackup(data: unknown): { ok: boolean; errors: string[] }
       errors.push('actualProfitLoss가 유효한 숫자가 아닌 라운드가 있습니다.');
     }
   }
+  const ids = (k: string) => new Set(arr(k).map((x) => x.id as string));
+  const projects = ids('projects'), sessions = ids('sessions'), tables = ids('tables'), shoes = ids('shoes'), rounds = ids('rounds'), ais = ids('aiProfiles');
+
   for (const p of arr('aiProfiles')) {
     if (!projects.has(p.projectId as string)) errors.push('존재하지 않는 프로젝트를 참조하는 AI 프로필이 있습니다.');
     for (const k of ['aggression', 'conservatism', 'trendFollowing', 'reversalPreference', 'volatilityTolerance', 'passPreference']) {
@@ -124,8 +127,6 @@ export function validateBackup(data: unknown): { ok: boolean; errors: string[] }
   }
 
   // 관계 무결성
-  const ids = (k: string) => new Set(arr(k).map((x) => x.id as string));
-  const projects = ids('projects'), sessions = ids('sessions'), tables = ids('tables'), shoes = ids('shoes'), rounds = ids('rounds'), ais = ids('aiProfiles');
   for (const s of arr('sessions')) if (!projects.has(s.projectId as string)) errors.push('존재하지 않는 프로젝트를 참조하는 세션이 있습니다.');
   for (const t of arr('tables')) if (!sessions.has(t.sessionId as string)) errors.push('sessionId가 존재하지 않는 테이블 데이터가 있습니다.');
   for (const s of arr('shoes')) {
