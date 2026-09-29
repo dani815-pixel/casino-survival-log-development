@@ -62,6 +62,7 @@ export interface StartSessionInput extends SessionInput {
 }
 
 export async function startSession(project: Project, input: StartSessionInput, previousSession?: DailySession): Promise<DailySession> {
+  const safePreviousSession = previousSession?.projectId === project.id ? previousSession : undefined;
   const game = getGame(input.gameId);
   fail(validateSessionInput(input, !!game));
   const now = Date.now();
@@ -76,7 +77,7 @@ export async function startSession(project: Project, input: StartSessionInput, p
     stopLoss: input.stopLoss,
     winCut: input.winCut,
     memo: input.memo.trim(),
-    meetingParticipants: previousSession?.meetingParticipants ? [...previousSession.meetingParticipants].slice(0, 4) : [],
+    meetingParticipants: safePreviousSession?.meetingParticipants ? [...safePreviousSession.meetingParticipants].slice(0, 4) : [],
     status: 'PLAYING',
     endBalance: null,
     calculatedEndBalance: null,
