@@ -39,7 +39,9 @@ function Character({ profile, state, speaking, bubble, showName, color, onClick 
 export default function MeetingPage() {
   const app = useApp();
   const { project, session, settings, aiProfiles, aiStates, aiRecords, rounds, game, reviews } = app;
-  const meetingParticipantIds = session?.meetingParticipants?.length ? session.meetingParticipants : settings.meeting.participants;
+  const meetingParticipantIds = session?.meetingParticipants?.length
+    ? session.meetingParticipants
+    : settings.meeting.participants;
   const participants = useMemo(
     () => meetingParticipantIds
       .map((id) => aiProfiles.find((p) => p.id === id))
@@ -47,6 +49,7 @@ export default function MeetingPage() {
       .slice(0, 4),
     [meetingParticipantIds, aiProfiles],
   );
+  const selectedParticipantIds = participants.map((p) => p.id);
   const others = useMemo(
     () => aiProfiles.filter((p) => p.active && !participants.some((x) => x.id === p.id)),
     [aiProfiles, participants],
@@ -117,7 +120,7 @@ export default function MeetingPage() {
   };
 
   const toggleParticipant = (p: AIProfile) => {
-    const cur = settings.meeting.participants;
+    const cur = selectedParticipantIds;
     if (cur.includes(p.id)) {
       void app.setMeetingParticipants(cur.filter((x) => x !== p.id));
     } else {
@@ -205,7 +208,7 @@ export default function MeetingPage() {
           <Card title="미팅 참여 선택 (최대 4명 · 앞 좌석 배치)">
             <div className="flex flex-wrap gap-1.5">
               {aiProfiles.filter((p) => p.active).map((p) => {
-                const on = settings.meeting.participants.includes(p.id);
+                const on = selectedParticipantIds.includes(p.id);
                 const idx = aiProfiles.indexOf(p);
                 return (
                   <button
