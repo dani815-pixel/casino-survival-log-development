@@ -174,7 +174,8 @@ export async function updateLastRound(ctx: RoundCtx, round: Round, input: RoundI
   await db.put('events', ev(ctx.session.id, 'ROUND', { action: 'UPDATE', roundId: round.id, roundNumber: round.roundNumber, result: updated.actualResult }));
 }
 
-export async function deleteRound(round: Round): Promise<void> {
+export async function deleteRound(session: DailySession, round: Round): Promise<void> {
+  if (session.status === 'ENDED') throw new DomainError('이미 종료된 세션의 라운드는 수정할 수 없습니다.');
   const recs = await db.byIndex<AIRoundRecord>('aiRecords', 'roundId', round.id);
   await db.del('rounds', round.id);
   await db.delMany('aiRecords', recs.map((r) => r.id));
