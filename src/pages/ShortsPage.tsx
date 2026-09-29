@@ -26,6 +26,8 @@ export default function ShortsPage() {
   const [description, setDescription] = useState('');
   const [hashtags, setHashtags] = useState('');
   const [notice, setNotice] = useState('');
+  const [captureMode, setCaptureMode] = useState(false);
+  const [captureCountdown, setCaptureCountdown] = useState(0);
   const [previewing, setPreviewing] = useState(false);
   const [previewRemaining, setPreviewRemaining] = useState(0);
 
@@ -119,6 +121,41 @@ export default function ShortsPage() {
       window.clearTimeout(timer);
     };
   }, [previewing, cur, timeline.shots]);
+
+  const enterCaptureMode = async () => {
+    const first = timeline.shots.findIndex((shot) => shot.enabled);
+    if (first < 0) {
+      setNotice('재생할 화면이 없습니다');
+      return;
+    }
+    setPreviewing(false);
+    setCur(first);
+    setCaptureCountdown(3);
+    setCaptureMode(true);
+    try {
+      await document.documentElement.requestFullscreen?.();
+    } catch {
+      // Fullscreen permission may be unavailable; the capture layout still works.
+    }
+  };
+
+  const exitCaptureMode = async () => {
+    setCaptureMode(false);
+    setCaptureCountdown(0);
+    setPreviewing(false);
+    if (document.fullscreenElement) {
+      try { await document.exitFullscreen(); } catch { /* ignore */ }
+    }
+  };
+
+  useEffect(() => {
+    if (!captureMode || captureCountdown <= 0) return;
+    const timer = window.setTimeout(() => {
+      setCaptureCountdown((value) => value - 1);
+      if (captureCountdown === 1) setPreviewing(true);
+    }, 1000);
+    return () => window.clearTimeout(timer);
+  }, [captureMode, captureCountdown]);
 
   const startPreview = () => {
     const first = timeline.shots.findIndex((shot) => shot.enabled);
@@ -323,6 +360,11 @@ export default function ShortsPage() {
         <div className="mt-3 flex gap-2"><Btn variant="subtle" className="flex-1" onClick={equalizeDurations} disabled={previewing}>균등 배분</Btn><Btn variant="ghost" className="flex-1" onClick={() => { stopPreview(); setTimeline(createDefaultShortsTimeline(30)); }}>30초 초기화</Btn></div>
       </Card>
 
+      <Card title="촬영 모드">
+        <p className="text-[11px] leading-5 text-slate-400">휴대폰 화면녹화를 먼저 켠 뒤 촬영 모드를 시작하세요. 설정된 Timeline이 자동으로 재생됩니다.</p>
+        <Btn variant="gold" className="mt-3 w-full" onClick={enterCaptureMode}>🎬 세로 촬영 모드 시작</Btn>
+      </Card>
+
       <Card title="업로드 정보">
         <div className="space-y-3">
           <Field label="쇼츠 제목"><TextInput value={title} onChange={(e) => setTitle(e.target.value)} placeholder="AI가 생성한 쇼츠 제목" /></Field>
@@ -378,5 +420,29 @@ export default function ShortsPage() {
         </Btn>
       </div>
     </div>
+      {captureMode && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black">
+          <div className="relative aspect-[9/16] h-full max-h-screen w-full max-w-[56.25vh] overflow-hidden bg-[#0b0f17]">
+            {captureCountdown > 0 ? (
+              <div className="flex h-full flex-col items-center justify-center">
+                <p className="text-xs font-black tracking-[0.25em] text-slate-500">CAPTURE READY</p>
+                <strong className="mt-3 text-8xl font-black text-white">{captureCountdown}</strong>
+              </div>
+            ) : (
+              <div className="flex h-full flex-col">
+                <div className="flex items-center justify-between px-4 py-3 text-[10px] font-black text-white/60">
+                  <span>{cur + 1} / {shots.length}</span>
+                  <span>{previewRemaining.toFixed(1)}s</span>
+                </div>
+                <div className="flex min-h-0 flex-1 items-center justify-center">
+                  {shots[cur]?.node}
+                </div>
+                <button type="button" onClick={exitCaptureMode} className="m-4 rounded-xl bg-white/10 py-3 text-xs font-black text-white">촬영 종료</button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
   );
 }
