@@ -475,7 +475,6 @@ export default function ShortsPage() {
           완료
         </Btn>
       </div>
-    </div>
       {captureMode && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black">
           <div className="relative aspect-[9/16] h-full max-h-screen w-full max-w-[56.25vh] overflow-hidden bg-[#0b0f17]">
@@ -500,6 +499,6 @@ export default function ShortsPage() {
           </div>
         </div>
       )}
-
+    </div>
   );
 }
