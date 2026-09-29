@@ -132,7 +132,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     [notify],
   );
 
-  const reloadChildren = useCallback(async (s: DailySession) => {
+  const reloadChildren = useCallback(async (s: DailySession, isCurrent: () => boolean = () => true) => {
     const [tables, shoes, rds, recs, evs, rvs] = await Promise.all([
       db.byIndex<TableSession>('tables', 'sessionId', s.id),
       db.byIndex<Shoe>('shoes', 'sessionId', s.id),
@@ -141,6 +141,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       db.byIndex<AppEvent>('events', 'sessionId', s.id),
       db.byIndex<ExternalReview>('reviews', 'sessionId', s.id),
     ]);
+    if (!isCurrent()) return;
     const sortedRounds = rds.sort((a, b) => a.roundNumber - b.roundNumber);
     setRounds(sortedRounds);
     setAiRecords(recs);
@@ -166,7 +167,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       setAiProfiles(profs);
       const cur = [...ss].reverse().find((s) => s.status !== 'ENDED') ?? ss[ss.length - 1] ?? null;
       setSession(cur);
-      if (cur) await reloadChildren(cur);
+      if (cur) await reloadChildren(cur, () => requestId === projectLoadRequestRef.current);
       if (requestId !== projectLoadRequestRef.current) return;
       if (cur) {
         // reloadChildren may have completed after another project load started.
