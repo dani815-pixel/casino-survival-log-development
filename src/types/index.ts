@@ -30,7 +30,10 @@ export interface DailySession {
   winCut: number | null;
   memo: string;
   status: SessionStatus;
+  // 종료 시 저장되는 최종 잔액 (사용자가 확인/수정 가능한 입력값)
   endBalance: number | null;
+  // 계산된 종료 잔액 = Daily Start + 실제 베팅 손익 합계 (항상 계산값 보존, 사용자 입력값과 별개)
+  calculatedEndBalance: number | null;
   endedAt: number | null;
   // 종료 시 저장되는 요약
   totalRounds: number;

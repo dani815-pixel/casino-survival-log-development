@@ -6,7 +6,7 @@ import { uid } from '../utils/id';
 import { buildSeedAIProfiles } from '../data/seedAI';
 import { getGame } from '../data/games';
 import { validateRoundInput, validateSessionInput, type RoundInput, type SessionInput } from '../utils/validation';
-import { computeSessionSummary, computeUserStats, round2 } from '../utils/statistics';
+import { buildSessionEndSummary, computeUserStats } from '../utils/statistics';
 import { settleBet } from '../utils/settle';
 import { playForRound } from './aiService';
 
@@ -78,6 +78,7 @@ export async function startSession(project: Project, input: StartSessionInput): 
     memo: input.memo.trim(),
     status: 'PLAYING',
     endBalance: null,
+    calculatedEndBalance: null,
     endedAt: null,
     totalRounds: 0,
     predictionCount: 0,
@@ -237,19 +238,28 @@ export async function endSession(session: DailySession, rounds: Round[], endBala
   if (session.status === 'ENDED') throw new DomainError('이미 종료된 세션입니다.');
   if (endBalance != null && (!Number.isFinite(endBalance) || endBalance < 0))
     throw new DomainError('종료 금액은 0 이상의 숫자여야 합니다.');
-  const stats = computeUserStats(session, rounds);
-  const summary = computeSessionSummary(rounds);
-  const finalBalance = endBalance ?? stats.currentBalance;
+  // 계산된 종료 잔액( calculated = Daily Start + 실제 베팅 P/L )과 사용자 입력 잔액을 분리 보존한다.
+  const s = buildSessionEndSummary(session, rounds, endBalance);
   const updated: DailySession = {
     ...session,
     status: 'ENDED',
     endedAt: Date.now(),
-    endBalance: finalBalance,
-    ...summary,
-    actualProfitLoss: round2(finalBalance - session.startBalance),
+    endBalance: s.endBalance,
+    calculatedEndBalance: s.calculatedEndBalance,
+    totalRounds: s.totalRounds,
+    predictionCount: s.predictionCount,
+    actualBetCount: s.actualBetCount,
+    actualProfitLoss: s.actualProfitLoss,
     updatedAt: Date.now(),
   };
   await db.put('sessions', updated);
-  await db.put('events', ev(session.id, 'SESSION_ENDED', { endBalance: finalBalance, ...summary }));
+  await db.put('events', ev(session.id, 'SESSION_ENDED', {
+    endBalance: s.endBalance,
+    calculatedEndBalance: s.calculatedEndBalance,
+    endBalanceMismatch: s.endBalanceMismatch,
+    totalRounds: s.totalRounds,
+    predictionCount: s.predictionCount,
+    actualBetCount: s.actualBetCount,
+  }));
   return updated;
 }

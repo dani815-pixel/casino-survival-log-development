@@ -1,7 +1,8 @@
 import { describe, it, expect } from 'vitest';
 import { settleBet } from '../utils/settle';
 import {
-  computeUserStats, computeSessionSummary, computeAIState, computeDynamicState, rankAI,
+  buildSessionEndSummary, computeAllAIStates, computeUserStats, computeSessionSummary,
+  computeAIState, computeDynamicState, rankAI,
 } from '../utils/statistics';
 import { validateBackup, validateRoundInput, validateSessionInput } from '../utils/validation';
 import { playForRound } from '../services/aiService';
@@ -17,7 +18,7 @@ function mkSession(over: Partial<DailySession> = {}): DailySession {
   return {
     id: 's1', projectId: 'p1', date: '2026-01-01', casino: 'Test', gameId: 'dragon-tiger',
     table: 'T-1', startBalance: 100, stopLoss: null, winCut: null, memo: '',
-    status: 'PLAYING', endBalance: null, endedAt: null,
+    status: 'PLAYING', endBalance: null, calculatedEndBalance: null, endedAt: null,
     totalRounds: 0, predictionCount: 0, actualBetCount: 0, actualProfitLoss: 0,
     createdAt: 1, updatedAt: 1, ...over,
   };
@@ -96,6 +97,52 @@ describe('사용자 통계 (예측/실제베팅 분리)', () => {
     expect(s.predictionCount).toBe(2);
     expect(s.actualBetCount).toBe(1);
     expect(s.actualProfitLoss).toBe(-10);
+  });
+});
+
+// ===== 세션 종료 잔액 계산 (Daily Start + 실제 베팅 P/L) =====
+
+describe('세션 종료 잔액 계산 (computedEndBalance)', () => {
+  it('Daily Start 100 + Actual P/L +20 => End Balance 120', () => {
+    const rounds = [mkRound({ roundNumber: 1, actualResult: 'dragon', myPrediction: 'dragon', bettingAmount: 20, actualProfitLoss: 20 })];
+    const s = buildSessionEndSummary(mkSession(), rounds, null);
+    expect(s.calculatedEndBalance).toBe(120);
+    expect(s.endBalance).toBe(120);
+    expect(s.endBalanceMismatch).toBe(false);
+  });
+  it('Daily Start 100 + Prediction only => End Balance 100 (예측은 잔액에 영향 없음)', () => {
+    const rounds = [mkRound({ roundNumber: 1, actualResult: 'dragon', myPrediction: 'dragon' })];
+    const s = buildSessionEndSummary(mkSession(), rounds, null);
+    expect(s.calculatedEndBalance).toBe(100);
+    expect(s.endBalance).toBe(100);
+  });
+  it('Daily Start 100 + Actual P/L -30 => End Balance 70', () => {
+    const rounds = [mkRound({ roundNumber: 1, actualResult: 'tiger', myPrediction: 'dragon', bettingAmount: 30, actualProfitLoss: -30 })];
+    const s = buildSessionEndSummary(mkSession(), rounds, null);
+    expect(s.calculatedEndBalance).toBe(70);
+    expect(s.endBalance).toBe(70);
+    expect(s.actualProfitLoss).toBe(-30);
+  });
+  it('입력 종료 잔액이 계산값과 다를 때: 입력값을 보존하고 계산값도 별도 보존 + 불일치 플래그', () => {
+    const rounds = [mkRound({ roundNumber: 1, actualResult: 'dragon', myPrediction: 'dragon', bettingAmount: 20, actualProfitLoss: 20 })];
+    const s = buildSessionEndSummary(mkSession(), rounds, 130);
+    expect(s.endBalance).toBe(130); // 사용자 입력값 보존 (강제 덮어쓰기 없음)
+    expect(s.calculatedEndBalance).toBe(120); // 계산 잔액 별도 보존
+    expect(s.endBalanceMismatch).toBe(true);
+  });
+  it('Prediction만 입력하면 predictionCount만 증가하고 actualBetCount는 증가하지 않는다', () => {
+    const rounds = [mkRound({ roundNumber: 1, actualResult: 'dragon', myPrediction: 'tiger' })];
+    const s = buildSessionEndSummary(mkSession(), rounds, null);
+    expect(s.predictionCount).toBe(1);
+    expect(s.actualBetCount).toBe(0);
+    expect(s.actualProfitLoss).toBe(0);
+  });
+  it('Actual Bet이 있으면 actualBetCount와 P/L이 반영된다', () => {
+    const rounds = [mkRound({ roundNumber: 1, actualResult: 'dragon', myPrediction: 'dragon', bettingAmount: 10, actualProfitLoss: 10 })];
+    const s = buildSessionEndSummary(mkSession(), rounds, null);
+    expect(s.predictionCount).toBe(1);
+    expect(s.actualBetCount).toBe(1);
+    expect(s.actualProfitLoss).toBe(10);
   });
 });
 
@@ -189,6 +236,39 @@ describe('AI 가상 플레이', () => {
     const dyn = computeDynamicState(wins);
     expect(dyn.streak).toBe(3);
     expect(dyn.confidence).toBeGreaterThan(50);
+  });
+});
+
+// ===== AI daily bankroll은 Daily Start Capital 기준 (Project Start Capital 사용 금지) =====
+
+describe('AI daily bankroll = Daily Start Capital', () => {
+  const aggressive = mkProfile('a1', { aggression: 90, passPreference: 0, volatilityTolerance: 0, conservatism: 0 });
+
+  it('AI의 첫 가상 자산은 해당 Daily Session의 startBalance에서 시작한다', () => {
+    const session = mkSession({ startBalance: 500 });
+    const round = mkRound({ roundNumber: 1, actualResult: 'tiger' });
+    const out = playForRound({ profiles: [aggressive], game: dt, session, round, allRecords: [], prevResults: [], rng: () => 0.1 });
+    // 500 기준 베팅(500 * 11% * 0.5 = 28) 패배 → 472. Project Start Capital이었다면 규모가 달라진다.
+    expect(out[0]!.bankrollAfter).toBe(472);
+  });
+
+  it('기록이 없으면 AI 자산은 Daily Start 그대로다 (시작 금액이 매일 리셋)', () => {
+    expect(computeAIState('a1', [], 500).bankroll).toBe(500);
+    expect(computeAIState('a1', [], 850).bankroll).toBe(850);
+    expect(computeAllAIStates(['a1', 'a2'], [], 920).map((s) => s.bankroll)).toEqual([920, 920]);
+  });
+
+  it('Project Start Capital은 AI daily bankroll 계산에 사용되지 않는다', () => {
+    // playForRound/computeAIState는 Project를 입력받지 않고 DailySession.startBalance만 사용한다.
+    // 프로젝트 최초 자금이 1,000,000이어도 Daily Start가 500이면 AI도 500으로 시작한다.
+    const session = mkSession({ startBalance: 500 });
+    const out = playForRound({
+      profiles: [aggressive], game: dt, session,
+      round: mkRound({ roundNumber: 1, actualResult: 'dragon' }),
+      allRecords: [], prevResults: [], rng: () => 0.1,
+    });
+    expect(out[0]!.bankrollAfter).toBe(528); // 500 + 28 (Daily Start 기준 베팅/정산)
+    expect(out[0]!.bankrollAfter).toBeLessThan(1000);
   });
 });
 

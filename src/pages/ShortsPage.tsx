@@ -70,7 +70,7 @@ export default function ShortsPage() {
         <p className="flex justify-between border-b border-white/10 pb-2"><span className="text-white/50">날짜</span>{session.date}</p>
         <p className="flex justify-between border-b border-white/10 pb-2"><span className="text-white/50">카지노</span>{session.casino}</p>
         <p className="flex justify-between border-b border-white/10 pb-2"><span className="text-white/50">테이블</span>{session.table}</p>
-        <p className="flex justify-between border-b border-white/10 pb-2"><span className="text-white/50">시작 금액</span>{moneyOrHide(session.startBalance)}</p>
+        <p className="flex justify-between border-b border-white/10 pb-2"><span className="text-white/50">오늘 시작 자금</span>{moneyOrHide(session.startBalance)}</p>
         <p className="flex justify-between"><span className="text-white/50">라운드</span>{rounds.length}R</p>
       </div>
       {lastRound && (

@@ -73,6 +73,40 @@ export function computeSessionSummary(rounds: Round[]): SessionSummary {
   };
 }
 
+// ===== 세션 종료 요약 (UI와 분리된 순수 함수) =====
+
+export interface SessionEndSummary {
+  // 최종 저장 잔액: 사용자 입력값이 있으면 그 값, 없으면 계산값
+  endBalance: number;
+  // 계산된 종료 잔액 = Daily Start Capital + 실제 베팅 P/L 합계 (Prediction 제외)
+  calculatedEndBalance: number;
+  totalRounds: number;
+  predictionCount: number;
+  actualBetCount: number;
+  actualProfitLoss: number;
+  // 입력한 종료 잔액과 계산 잔액이 다른지 여부 (강제 덮어쓰기 없이 경고용)
+  endBalanceMismatch: boolean;
+}
+
+export function buildSessionEndSummary(
+  session: { startBalance: number },
+  rounds: Round[],
+  enteredEndBalance: number | null,
+): SessionEndSummary {
+  const stats = computeUserStats({ startBalance: session.startBalance, endBalance: null }, rounds);
+  const calculatedEndBalance = stats.currentBalance;
+  const endBalance = round2(enteredEndBalance ?? calculatedEndBalance);
+  return {
+    endBalance,
+    calculatedEndBalance,
+    totalRounds: stats.totalRounds,
+    predictionCount: stats.predictionCount,
+    actualBetCount: stats.actualBetCount,
+    actualProfitLoss: round2(endBalance - session.startBalance),
+    endBalanceMismatch: enteredEndBalance != null && round2(enteredEndBalance) !== calculatedEndBalance,
+  };
+}
+
 export function balanceSeries(session: { startBalance: number }, rounds: Round[]): { round: number; balance: number }[] {
   let b = session.startBalance;
   const pts = [{ round: 0, balance: b }];

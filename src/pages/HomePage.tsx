@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useApp } from '../app/store';
 import { Btn, Card, Field, Money, NumInput, Pill, SectionTitle, Select, Stat, TextInput } from '../components/ui';
-import { CURRENCIES, fmtPct, todayStr } from '../utils/format';
+import { CURRENCIES, fmtMoney, fmtPct, todayStr } from '../utils/format';
 import { rankAI } from '../utils/statistics';
 import { aiColor } from '../components/charts';
 import { Bot, Crown, FolderKanban, Play, Skull } from 'lucide-react';
@@ -92,7 +92,7 @@ export default function HomePage() {
             : session?.endBalance != null
               ? <Money value={session.endBalance} currency={settings.currency} decimals={settings.decimals} />
               : '-'}
-          sub={session ? `Daily Start ${session.startBalance}` : '세션을 시작하세요'}
+          sub={session ? `오늘 시작 자금 ${fmtMoney(session.startBalance, settings.currency, settings.decimals)}` : '세션을 시작하세요'}
         />
         <Stat
           label="오늘 P/L"
@@ -104,7 +104,7 @@ export default function HomePage() {
           label="프로젝트 누적 P/L"
           value={<Money value={projectPL} currency={settings.currency} decimals={settings.decimals} signed />}
           tone={projectPL > 0 ? 'good' : projectPL < 0 ? 'bad' : 'default'}
-          sub={`세션 ${sessions.length}일 · Project Start ${project.startCapital}`}
+          sub={`세션 ${sessions.length}일 · 프로젝트 최초 자금 ${fmtMoney(project.startCapital, project.currency, settings.decimals)}`}
         />
         <Stat
           label="현재 라운드"

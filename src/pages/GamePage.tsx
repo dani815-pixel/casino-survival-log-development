@@ -4,7 +4,8 @@ import {
   Btn, Card, Empty, Field, Money, NumInput, Pill, Seg, Sheet, Stat, TextInput, Select,
 } from '../components/ui';
 import { GAMES, optionLabel } from '../data/games';
-import { fmtPct, timeStr, todayStr } from '../utils/format';
+import { fmtMoney, fmtPct, timeStr, todayStr } from '../utils/format';
+import { round2 } from '../utils/statistics';
 import { aiColor } from '../components/charts';
 import {
   AlertTriangle, ArrowRightLeft, Dices, Layers, Pencil, Play, Pause, Skull, Square, Trash2,
@@ -39,7 +40,7 @@ function SessionStartForm() {
           </Field>
           <Field label="테이블"><TextInput value={table} onChange={(e) => setTable(e.target.value)} placeholder="예: T-12" /></Field>
         </div>
-        <Field label="Daily Start 금액" hint="사용자와 모든 활성 AI가 동일한 금액으로 시작합니다 (매일 리셋)">
+        <Field label="오늘 시작 자금 (Daily Start Capital)" hint="프로젝트 최초 자금과는 별개입니다. 사용자와 모든 활성 AI가 이 금액으로 시작하며 매일 리셋됩니다">
           <NumInput value={startBalance} onChange={setStartBalance} />
         </Field>
         <div className="grid grid-cols-2 gap-3">
@@ -149,11 +150,17 @@ export default function GamePage() {
       <div className="space-y-4">
         <Card title="세션 종료됨">
           <div className="grid grid-cols-2 gap-2">
-            <Stat label="시작" value={session.startBalance} />
-            <Stat label="종료" value={session.endBalance ?? '-'} />
+            <Stat label="오늘 시작 자금" value={session.startBalance} />
+            <Stat label="종료 잔액 (입력)" value={session.endBalance ?? '-'} />
             <Stat label="P/L" value={<Money value={session.actualProfitLoss} currency={settings.currency} decimals={settings.decimals} signed />} tone={session.actualProfitLoss >= 0 ? 'good' : 'bad'} />
             <Stat label="라운드" value={session.totalRounds} sub={`예측 ${session.predictionCount} · 베팅 ${session.actualBetCount}`} />
           </div>
+          {session.calculatedEndBalance != null && session.endBalance != null && session.calculatedEndBalance !== session.endBalance && (
+            <p className="mt-3 flex items-center gap-1.5 rounded-lg bg-amber-500/10 px-3 py-2 text-[11px] font-semibold text-amber-300 ring-1 ring-amber-400/20">
+              <AlertTriangle size={12} className="shrink-0" />
+              계산된 종료 잔액({session.calculatedEndBalance})과 입력한 종료 잔액({session.endBalance})이 다릅니다. 두 값이 모두 보존됩니다.
+            </p>
+          )}
         </Card>
         <SessionStartForm />
       </div>
@@ -180,7 +187,7 @@ export default function GamePage() {
           <Pill tone={session.status === 'PLAYING' ? 'good' : 'warn'}>{session.status}</Pill>
         </div>
         <div className="mt-3 grid grid-cols-3 gap-2">
-          <Stat label="현재 잔액" value={<Money value={userStats.currentBalance} currency={settings.currency} decimals={settings.decimals} />} sub={`start ${session.startBalance}`} />
+          <Stat label="현재 잔액" value={<Money value={userStats.currentBalance} currency={settings.currency} decimals={settings.decimals} />} sub={`오늘 시작 ${fmtMoney(session.startBalance, settings.currency, settings.decimals)}`} />
           <Stat label="오늘 P/L" value={<Money value={userStats.todayPL} currency={settings.currency} decimals={settings.decimals} signed />} tone={pl > 0 ? 'good' : pl < 0 ? 'bad' : 'default'} sub={fmtPct(userStats.dailyReturn)} />
           <Stat label="라운드" value={`R${rounds.length}`} sub={`예측 ${userStats.predictionCount} 베팅 ${userStats.actualBetCount}`} />
         </div>
@@ -315,9 +322,33 @@ export default function GamePage() {
             <Stat label="예측 적중률" value={fmtPct(userStats.predictionHitRate)} />
             <Stat label="베팅 승률" value={fmtPct(userStats.actualBetWinRate)} />
           </div>
-          <Field label="종료 금액 (직접 확인 후 수정 가능)">
+
+          {/* 계산된 종료 잔액 = 오늘 시작 자금 + 실제 베팅 손익 (Prediction/AI 가상자산 미포함) */}
+          <div className="rounded-xl bg-[#0c1220] p-3.5 ring-1 ring-[#f0c04a]/20">
+            <p className="text-[11px] font-bold text-slate-400">계산된 종료 잔액 (오늘 시작 자금 + 실제 베팅 손익)</p>
+            <p className="mt-1 text-lg font-black tabular-nums text-[#ffd97a]">
+              {fmtMoney(userStats.currentBalance, settings.currency, settings.decimals)}
+            </p>
+            <p className="mt-0.5 text-[10px] tabular-nums text-slate-500">
+              = {fmtMoney(session.startBalance, settings.currency, settings.decimals)} (오늘 시작) + ({fmtMoney(userStats.actualProfitLoss, settings.currency, settings.decimals)}) 베팅 손익
+            </p>
+          </div>
+
+          <Field label="종료 잔액 입력 (기본값: 계산된 잔액)" hint="계산값과 다르게 입력할 수 있지만, 차이가 있으면 경고가 표시되며 두 값이 모두 보존됩니다">
             <NumInput value={endBalance} onChange={setEndBalance} />
           </Field>
+
+          {endBalance != null && round2(endBalance) !== userStats.currentBalance && (
+            <div className="flex items-start gap-2 rounded-xl bg-amber-500/10 px-3.5 py-3 text-xs font-semibold leading-relaxed text-amber-200 ring-1 ring-amber-400/25">
+              <AlertTriangle size={15} className="mt-0.5 shrink-0" />
+              <span>
+                계산된 종료 잔액은 {fmtMoney(userStats.currentBalance, settings.currency, settings.decimals)}입니다.
+                입력한 종료 잔액 {fmtMoney(endBalance, settings.currency, settings.decimals)}과(와) 차이가 있습니다.
+                라운드 손익 또는 종료 잔액을 확인하세요.
+              </span>
+            </div>
+          )}
+
           <Btn variant="danger" className="w-full min-h-[52px]" onClick={() => {
             void app.doEndSession(endBalance).then((ok) => { if (ok) setEndOpen(false); });
           }}>
