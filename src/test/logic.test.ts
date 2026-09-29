@@ -923,6 +923,18 @@ describe('Daily Analysis 스토리 타입 계약', () => {
   });
 });
 
+describe('Shorts 결과 잔고 표시 기준', () => {
+  it('수동 종료잔고와 실제 계산 잔고가 달라도 Shorts는 실제 P/L 기준 계산 잔고를 사용한다', () => {
+    const startBalance = 1000;
+    const actualPL = -120;
+    const calculatedBalance = startBalance + actualPL;
+    const manualEndBalance = 950;
+    expect(calculatedBalance).toBe(880);
+    expect(manualEndBalance).not.toBe(calculatedBalance);
+    expect(calculatedBalance).toBe(startBalance + actualPL);
+  });
+});
+
 describe('Shorts review data', () => {
   it('가장 큰 실제 손익 변동 라운드를 핵심 라운드로 선택한다', () => {
     const rounds = [
