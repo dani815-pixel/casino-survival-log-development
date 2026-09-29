@@ -61,7 +61,7 @@ export interface StartSessionInput extends SessionInput {
   memo: string;
 }
 
-export async function startSession(project: Project, input: StartSessionInput): Promise<DailySession> {
+export async function startSession(project: Project, input: StartSessionInput, previousSession?: DailySession): Promise<DailySession> {
   const game = getGame(input.gameId);
   fail(validateSessionInput(input, !!game));
   const now = Date.now();
@@ -76,6 +76,7 @@ export async function startSession(project: Project, input: StartSessionInput): 
     stopLoss: input.stopLoss,
     winCut: input.winCut,
     memo: input.memo.trim(),
+    meetingParticipants: previousSession?.meetingParticipants ? [...previousSession.meetingParticipants].slice(0, 4) : [],
     status: 'PLAYING',
     endBalance: null,
     calculatedEndBalance: null,
