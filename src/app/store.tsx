@@ -20,8 +20,20 @@ import { uid } from '../utils/id';
 export type Tab = 'home' | 'game' | 'ai' | 'meeting' | 'charts' | 'review' | 'shorts' | 'settings';
 
 export function normalizeMeetingParticipants(participants: string[], activeIds: string[]): string[] {
-  const current = participants.filter((id) => activeIds.includes(id)).slice(0, 4);
+  const current = [...new Set(participants)].filter((id) => activeIds.includes(id)).slice(0, 4);
   return current.length > 0 ? current : activeIds.slice(0, 4);
+}
+
+export function resolveMeetingParticipants(
+  method: MeetingParticipantSelectionMethod,
+  ids: string[] | undefined,
+  activeIds: string[],
+): string[] {
+  // Review 화면에서 미리 추첨한 RANDOM 결과가 있으면 그 결과를 그대로 확정한다.
+  // ids가 없을 때만 새로 추첨해 화면 표시와 실제 저장값이 달라지는 것을 방지한다.
+  return method === 'RANDOM' && !(ids?.length)
+    ? selectRandomMeetingParticipants(activeIds)
+    : normalizeMeetingParticipants(ids ?? [], activeIds);
 }
 
 export interface MoveTableInput {
@@ -335,7 +347,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
           target,
           input,
         );
-        await reloadChildren(session);
+        await reloadChildren(updatedSession);
         notify(`R${target.roundNumber} 수정됨 (통계 재계산 완료)`);
       }),
     [session, activeTable, activeShoe, rounds, aiProfiles, aiRecords, latestRound, run, reloadChildren, notify],
@@ -463,9 +475,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       run(async () => {
         if (!session) throw new Error('먼저 Daily Session을 시작하세요.');
         const activeIds = aiProfiles.filter((p) => p.active).map((p) => p.id);
-        const selected = method === 'RANDOM'
-          ? selectRandomMeetingParticipants(activeIds)
-          : normalizeMeetingParticipants(ids ?? [], activeIds);
+        const selected = resolveMeetingParticipants(method, ids, activeIds);
         if (selected.length === 0) throw new Error('참여 가능한 활성 AI가 없습니다.');
 
         const updatedSession: DailySession = { ...session, meetingParticipants: selected, updatedAt: Date.now() };
