@@ -20,6 +20,8 @@ export function validateSessionInput(input: SessionInput, gameExists: boolean): 
     errs.push('시작 금액은 0보다 큰 숫자여야 합니다.');
   if (input.stopLoss != null && (!Number.isFinite(input.stopLoss) || input.stopLoss <= 0))
     errs.push('Stop Loss는 0보다 큰 숫자여야 합니다.');
+  else if (input.stopLoss != null && input.stopLoss > input.startBalance)
+    errs.push('Stop Loss는 오늘 시작 금액보다 클 수 없습니다.');
   if (input.winCut != null && (!Number.isFinite(input.winCut) || input.winCut <= 0))
     errs.push('Win Cut은 0보다 큰 숫자여야 합니다.');
   return errs;
