@@ -300,7 +300,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         const aiCount = aiProfiles.filter((p) => p.active).length;
         notify(`세션 시작 · 사용자와 AI ${aiCount}명이 각각 시작 금액으로 출발합니다`);
       }),
-    [project, aiProfiles, run, loadProjectData, notify],
+    [project, sessions, aiProfiles, run, loadProjectData, notify],
   );
 
   const addRound = useCallback(
