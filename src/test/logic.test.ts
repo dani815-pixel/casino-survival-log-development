@@ -122,6 +122,16 @@ describe('프로젝트 누적 P/L', () => {
     expect(computeProjectCumulativePL(sessions, 'day2', -10)).toBe(10);
   });
 
+  it('여러 날짜의 실제 P/L을 합산하며 Daily Start/종료잔액과 섞지 않는다', () => {
+    const sessions = [
+      mkSession({ id: 'day1', status: 'ENDED', startBalance: 100, actualProfitLoss: 20, endBalance: 130 }),
+      mkSession({ id: 'day2', status: 'ENDED', startBalance: 200, actualProfitLoss: -35, endBalance: 165 }),
+      mkSession({ id: 'day3', status: 'PLAYING', startBalance: 50, actualProfitLoss: 0 }),
+    ];
+    // Day 3의 현재 실제 P/L은 별도로 전달하고, 종료잔액은 누적 P/L 계산에 사용하지 않는다.
+    expect(computeProjectCumulativePL(sessions, 'day3', 5)).toBe(-10);
+  });
+
   it('AI 가상 P/L이나 Prediction Only는 프로젝트 사용자 P/L에 포함하지 않는다', () => {
     const sessions = [
       mkSession({ id: 'day1', status: 'ENDED', startBalance: 100, actualProfitLoss: 20 }),
