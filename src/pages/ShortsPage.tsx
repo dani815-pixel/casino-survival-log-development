@@ -22,7 +22,12 @@ export default function ShortsPage() {
   const { project, session, game, rounds, aiProfiles, aiStates, reviews, settings, userStats } = app;
   const [cur, setCur] = useState(0);
 
-  const analysis = reviews.find((r) => r.kind === 'DAILY_ANALYSIS') ?? null;
+  const analysis = useMemo(
+    () => reviews
+      .filter((r) => r.kind === 'DAILY_ANALYSIS' && r.sessionId === session?.id)
+      .sort((a, b) => b.createdAt - a.createdAt)[0] ?? null,
+    [reviews, session?.id],
+  );
   const highlights = useMemo(() => (analysis ? extractHighlights(analysis.rawText) : null), [analysis]);
   const summaryLines = useMemo(
     () => (analysis ? (analysis.parsedSummary || analysis.rawText).split('\n').filter(Boolean).slice(0, 6) : []),
