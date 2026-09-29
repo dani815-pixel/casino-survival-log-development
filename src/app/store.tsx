@@ -18,6 +18,11 @@ import { todayStr } from '../utils/format';
 
 export type Tab = 'home' | 'game' | 'ai' | 'meeting' | 'charts' | 'review' | 'shorts' | 'settings';
 
+export function normalizeMeetingParticipants(participants: string[], activeIds: string[]): string[] {
+  const current = participants.filter((id) => activeIds.includes(id)).slice(0, 4);
+  return current.length > 0 ? current : activeIds.slice(0, 4);
+}
+
 export interface MoveTableInput {
   newTable: string; newShoe: number; balanceAtMove: number; memo: string;
 }
@@ -198,8 +203,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!ready || aiProfiles.length === 0) return;
     const activeIds = aiProfiles.filter((p) => p.active).map((p) => p.id);
-    const current = settings.meeting.participants.filter((id) => activeIds.includes(id)).slice(0, 4);
-    const next = current.length > 0 ? current : activeIds.slice(0, 4);
+    const next = normalizeMeetingParticipants(settings.meeting.participants, activeIds);
     if (
       next.length === settings.meeting.participants.length &&
       next.every((id, i) => id === settings.meeting.participants[i])
