@@ -352,6 +352,74 @@ describe('AI 랭킹', () => {
   });
 });
 
+// ===== AI 커리어 / 결측 기록 / 랭킹 회귀 검증 =====
+
+describe('AI 커리어 통계', () => {
+  it('PASS는 승패에 포함하지 않고, 탈락 이후 기록 공백도 패배로 만들지 않는다', () => {
+    const records = [
+      mkAIRecord({ aiId: 'a1', sessionId: 'day1', roundNumber: 1, selection: null, virtualBet: 0, resultPL: 0, bankrollAfter: 100, eliminated: false }),
+      mkAIRecord({ aiId: 'a1', sessionId: 'day1', roundNumber: 2, resultPL: -100, bankrollAfter: 0, eliminated: true }),
+    ];
+    const career = computeCareer('a1', records);
+    expect(career.sessions).toBe(1);
+    expect(career.totalRounds).toBe(2);
+    expect(career.wins).toBe(0);
+    expect(career.losses).toBe(1);
+    expect(career.passes).toBe(1);
+    expect(career.virtualBetCount).toBe(1);
+    expect(career.careerPL).toBe(-100);
+    expect(career.eliminationCount).toBe(1);
+
+    const missingAfterElimination = computeAIState('a1', records, 100);
+    expect(missingAfterElimination.losses).toBe(1);
+    expect(missingAfterElimination.passes).toBe(1);
+  });
+
+  it('다른 AI의 기록은 커리어 통계에 섞이지 않는다', () => {
+    const records = [
+      mkAIRecord({ aiId: 'a1', sessionId: 'day1', resultPL: 20, bankrollAfter: 120 }),
+      mkAIRecord({ aiId: 'a2', sessionId: 'day1', resultPL: -50, bankrollAfter: 50 }),
+      mkAIRecord({ aiId: 'a1', sessionId: 'day2', resultPL: -5, bankrollAfter: 95 }),
+    ];
+    const career = computeCareer('a1', records);
+    expect(career.sessions).toBe(2);
+    expect(career.virtualBetCount).toBe(2);
+    expect(career.careerPL).toBe(15);
+    expect(career.losses).toBe(1);
+  });
+
+  it('기록이 전혀 없는 AI는 0승 0패이며 결측 기록을 패배로 계산하지 않는다', () => {
+    const state = computeAIState('a3', [], 100);
+    expect(state.bankroll).toBe(100);
+    expect(state.pl).toBe(0);
+    expect(state.rounds).toBe(0);
+    expect(state.wins).toBe(0);
+    expect(state.losses).toBe(0);
+    expect(state.passes).toBe(0);
+    expect(state.eliminated).toBe(false);
+  });
+});
+
+describe('AI 랭킹 기준 독립성', () => {
+  it('careerPL 랭킹은 프로젝트 누적 P/L 맵만 사용하고 다른 기준을 섞지 않는다', () => {
+    const states = [
+      computeAIState('a1', [mkAIRecord({ aiId: 'a1', resultPL: 100, bankrollAfter: 200 })], 100),
+      computeAIState('a2', [mkAIRecord({ aiId: 'a2', resultPL: 10, bankrollAfter: 110 })], 100),
+    ];
+    const careerPL = new Map([['a1', -20], ['a2', 50]]);
+    expect(rankAI(states, 'careerPL', careerPL).map((s) => s.aiId)).toEqual(['a2', 'a1']);
+  });
+
+  it('careerPL 맵에 없는 AI는 0으로 처리하며 현재 일일 P/L을 대신 사용하지 않는다', () => {
+    const states = [
+      computeAIState('a1', [mkAIRecord({ aiId: 'a1', resultPL: 80, bankrollAfter: 180 })], 100),
+      computeAIState('a2', [mkAIRecord({ aiId: 'a2', resultPL: -10, bankrollAfter: 90 })], 100),
+    ];
+    const careerPL = new Map([['a2', 5]]);
+    expect(rankAI(states, 'careerPL', careerPL).map((s) => s.aiId)).toEqual(['a2', 'a1']);
+  });
+});
+
 // ===== JSON Import 검증 =====
 
 describe('JSON Import 검증', () => {
