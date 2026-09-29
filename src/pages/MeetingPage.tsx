@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useApp } from '../app/store';
 import { Btn, Card, Empty, Pill } from '../components/ui';
 import { generateSpeech } from '../services/aiService';
+import { getLatestDailyAnalysis } from '../services/promptService';
 import { rankAI, computeDynamicState } from '../utils/statistics';
 import { optionLabel } from '../data/games';
 import { aiColor } from '../components/charts';
@@ -54,7 +55,7 @@ export default function MeetingPage() {
   const turnRef = useRef(0);
 
   const latestDailyAnalysis = useMemo(
-    () => reviews.find((r) => r.kind === 'DAILY_ANALYSIS')?.rawText ?? '',
+    () => session ? getLatestDailyAnalysis(reviews, session.id) : '',
     [reviews],
   );
   const rankedByPL = useMemo(() => rankAI(aiStates, 'pl'), [aiStates]);
