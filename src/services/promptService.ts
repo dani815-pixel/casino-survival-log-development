@@ -132,6 +132,38 @@ export function buildDailyAnalysisPrompt(b: PromptBundle, template: string): str
   return template.replace('{{DATA}}', buildSessionDataSection(b));
 }
 
+export function parseParticipantRecommendations(
+  raw: string,
+  activeIds: string[],
+): { recommendations: ParticipantRecommendation[]; error: string | null } {
+  try {
+    const parsed = JSON.parse(raw) as { participants?: unknown };
+    if (!Array.isArray(parsed.participants)) {
+      return { recommendations: [], error: 'participants 배열이 없습니다.' };
+    }
+    const active = new Set(activeIds);
+    const seen = new Set<string>();
+    const recommendations: ParticipantRecommendation[] = [];
+    for (const item of parsed.participants) {
+      if (!item || typeof item !== 'object') continue;
+      const value = item as { aiId?: unknown; reason?: unknown };
+      if (typeof value.aiId !== 'string' || typeof value.reason !== 'string') continue;
+      const aiId = value.aiId.trim();
+      const reason = value.reason.trim();
+      if (!aiId || !reason || !active.has(aiId) || seen.has(aiId)) continue;
+      seen.add(aiId);
+      recommendations.push({ aiId, reason });
+      if (recommendations.length === 4) break;
+    }
+    if (recommendations.length === 0) {
+      return { recommendations: [], error: '활성 AI에 해당하는 유효한 추천이 없습니다.' };
+    }
+    return { recommendations, error: null };
+  } catch {
+    return { recommendations: [], error: 'JSON 형식이 올바르지 않습니다.' };
+  }
+}
+
 export function buildParticipantRecommendationPrompt(
   b: PromptBundle,
   activeProfiles: AIProfile[],
