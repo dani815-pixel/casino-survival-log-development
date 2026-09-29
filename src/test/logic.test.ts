@@ -207,6 +207,14 @@ describe('라운드/세션 검증', () => {
     const errs = validateRoundInput({ ...base, session: mkSession({ status: 'PAUSED' }), input: { actualResult: 'dragon', myPrediction: null, bettingAmount: null, memo: '' } });
     expect(errs.some((e) => e.includes('일시정지'))).toBe(true);
   });
+  it('종료된 세션에서는 라운드 입력을 차단한다', () => {
+    const errs = validateRoundInput({ ...base, session: mkSession({ status: 'ENDED' }), input: { actualResult: 'dragon', myPrediction: null, bettingAmount: null, memo: '' } });
+    expect(errs.some((e) => e.includes('종료된 세션'))).toBe(true);
+  });
+  it('활성 슈가 없으면 라운드 입력을 차단한다', () => {
+    const errs = validateRoundInput({ ...base, shoe: { ...base.shoe, status: 'ENDED' }, input: { actualResult: 'dragon', myPrediction: null, bettingAmount: null, memo: '' } });
+    expect(errs.some((e) => e.includes('진행 중인 슈'))).toBe(true);
+  });
   it('잘못된 결과 옵션 거부', () => {
     const errs = validateRoundInput({ ...base, input: { actualResult: 'player', myPrediction: null, bettingAmount: null, memo: '' } });
     expect(errs.some((e) => e.includes('결과'))).toBe(true);
