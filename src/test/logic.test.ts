@@ -6,7 +6,7 @@ import {
 } from '../utils/statistics';
 import { validateBackup, validateRoundInput, validateSessionInput } from '../utils/validation';
 import { generateSpeech, playForRound } from '../services/aiService';
-import { buildParticipantRecommendationPrompt, buildSessionDataSection, createDefaultShortsTimeline, getLatestDailyAnalysis, getNextEnabledShortsShotIndex, getPreviousEndedSession, isReviewStale, normalizeShortsTimeline, parseParticipantRecommendations, parseShortsContent, selectRandomMeetingParticipants } from '../services/promptService';
+import { buildParticipantRecommendationPrompt, buildSessionDataSection, buildShortsReviewData, createDefaultShortsTimeline, getLatestDailyAnalysis, getNextEnabledShortsShotIndex, getPreviousEndedSession, isReviewStale, normalizeShortsTimeline, parseParticipantRecommendations, parseShortsContent, selectRandomMeetingParticipants } from '../services/promptService';
 import { isLatestProjectLoad, normalizeMeetingParticipants, resolveMeetingParticipants } from '../app/store';
 import { getGame } from '../data/games';
 import type { AIProfile, AIRoundRecord, DailySession, Round } from '../types';
@@ -897,6 +897,25 @@ describe('Meeting 참여자 설정', () => {
 });
 
 // ===== Shorts / 외부 AI 분석 연결 =====
+
+describe('Shorts review data', () => {
+  it('가장 큰 실제 손익 변동 라운드를 핵심 라운드로 선택한다', () => {
+    const rounds = [
+      { id: 'r1', sessionId: 's1', shoeId: 'sh1', roundNumber: 1, actualResult: 'BANKER', bettingAmount: 10, actualProfitLoss: 5 },
+      { id: 'r2', sessionId: 's1', shoeId: 'sh1', roundNumber: 2, actualResult: 'PLAYER', bettingAmount: 20, actualProfitLoss: -40 },
+    ] as Round[];
+    expect(buildShortsReviewData(rounds, null).keyRound?.id).toBe('r2');
+  });
+
+  it('라운드가 없으면 핵심 라운드는 null이다', () => {
+    expect(buildShortsReviewData([], null).keyRound).toBeNull();
+  });
+
+  it('외부 AI 분석은 최대 3줄의 복기 요약으로 정리한다', () => {
+    const review = { id: 'rv1', sessionId: 's1', kind: 'DAILY_ANALYSIS', rawText: '첫째\n둘째\n셋째\n넷째', createdAt: 1 } as any;
+    expect(buildShortsReviewData([], review).summaryLines).toEqual(['첫째', '둘째', '셋째']);
+  });
+});
 
 describe('Shorts Preview sequence', () => {
   it('다음 활성 화면을 찾아 OFF 화면을 건너뛴다', () => {
