@@ -171,12 +171,14 @@ export async function updateLastRound(ctx: RoundCtx, round: Round, input: RoundI
   await db.put('rounds', updated);
   await db.delMany('aiRecords', removedIds);
   await db.putMany('aiRecords', freshAI);
+  await db.put('events', ev(ctx.session.id, 'ROUND', { action: 'UPDATE', roundId: round.id, roundNumber: round.roundNumber, result: updated.actualResult }));
 }
 
 export async function deleteRound(round: Round): Promise<void> {
   const recs = await db.byIndex<AIRoundRecord>('aiRecords', 'roundId', round.id);
   await db.del('rounds', round.id);
   await db.delMany('aiRecords', recs.map((r) => r.id));
+  await db.put('events', ev(round.sessionId, 'ROUND', { action: 'DELETE', roundId: round.id, roundNumber: round.roundNumber, result: round.actualResult }));
 }
 
 // ===== Shoe / Table =====
