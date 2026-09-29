@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useApp } from '../app/store';
 import { Btn, Card, Empty, Field, NumInput, TextArea, TextInput } from '../components/ui';
-import { createDefaultShortsTimeline, extractHighlights, getNextEnabledShortsShotIndex } from '../services/promptService';
+import { buildShortsReviewData, createDefaultShortsTimeline, extractHighlights, getNextEnabledShortsShotIndex } from '../services/promptService';
 import { rankAI } from '../utils/statistics';
 import { aiColor } from '../components/charts';
 import { optionLabel } from '../data/games';
@@ -38,10 +38,7 @@ export default function ShortsPage() {
     [reviews, session?.id],
   );
   const highlights = useMemo(() => (analysis ? extractHighlights(analysis.rawText) : null), [analysis]);
-  const summaryLines = useMemo(
-    () => (analysis ? (analysis.parsedSummary || analysis.rawText).split('\n').filter(Boolean).slice(0, 6) : []),
-    [analysis],
-  );
+  const reviewData = useMemo(() => buildShortsReviewData(rounds, analysis), [rounds, analysis]);
   useEffect(() => {
     setTitle(analysis?.shorts?.title ?? '');
     setDescription(analysis?.shorts?.description ?? '');
@@ -296,12 +293,34 @@ export default function ShortsPage() {
     // 5. Daily AI Review
     <div key="s5" className="flex h-full flex-col">
       <p className="text-[10px] font-black tracking-[0.3em] text-[#ffd97a]/80">DAILY AI REVIEW</p>
-      <div className="mt-4 space-y-2 overflow-hidden">
-        {summaryLines.map((l, i) => (
-          <p key={i} className="rounded-xl bg-white/5 px-3.5 py-2.5 text-[10.5px] font-semibold leading-relaxed text-slate-100">{l}</p>
-        ))}
+      <div className="mt-4 rounded-2xl bg-white/5 p-4">
+        <p className="text-[10px] font-bold text-white/45">TODAY'S P/L</p>
+        <p className={`mt-1 text-3xl font-black tabular-nums ${userStats.todayPL >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+          {bc.showBalance ? fmtSigned(userStats.todayPL, settings.currency, settings.decimals) : '비공개'}
+        </p>
+        <p className="mt-1 text-[10px] font-semibold text-white/45">{rounds.length}R · {ended ? '세션 종료' : '세션 진행 중'}</p>
       </div>
-      <p className="mt-3 text-center text-[9px] font-semibold text-white/35">출처: 외부 AI 분석 (원문은 앱에 보존)</p>
+      {reviewData.keyRound ? (
+        <div className="mt-3 rounded-2xl border border-white/10 bg-black/20 p-3.5">
+          <p className="text-[10px] font-black text-[#ffd97a]">KEY MOMENT · R{reviewData.keyRound.roundNumber}</p>
+          <p className="mt-1 text-[12px] font-bold text-white">결과 {optionLabel(game, reviewData.keyRound.actualResult)}</p>
+          {reviewData.keyRound.actualProfitLoss != null && (
+            <p className={`mt-1 text-lg font-black ${reviewData.keyRound.actualProfitLoss >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+              {bc.showBalance ? fmtSigned(reviewData.keyRound.actualProfitLoss, settings.currency, settings.decimals) : '비공개'}
+            </p>
+          )}
+        </div>
+      ) : (
+        <p className="mt-3 rounded-2xl bg-white/5 p-4 text-center text-[11px] font-semibold text-white/45">기록된 라운드가 없습니다.</p>
+      )}
+      <div className="mt-3 space-y-2 overflow-hidden">
+        {reviewData.summaryLines.length ? reviewData.summaryLines.map((l, i) => (
+          <p key={i} className="rounded-xl bg-white/5 px-3 py-2 text-[10px] font-semibold leading-relaxed text-slate-100">{l}</p>
+        )) : (
+          <p className="text-center text-[10px] font-semibold text-white/40">외부 AI 복기 요약이 없습니다.</p>
+        )}
+      </div>
+      <p className="mt-2 text-center text-[9px] font-semibold text-white/30">외부 AI 분석 + 실제 세션 기록</p>
       {foot}
     </div>,
     // 6. Day Complete
@@ -322,7 +341,7 @@ export default function ShortsPage() {
           </div>
         ))}
       </div>
-      {summaryLines[0] && (
+      {reviewData.summaryLines[0] && (
         <p className="mt-4 rounded-2xl border border-[#f0c04a]/30 bg-[#f0c04a]/10 px-4 py-3 text-[11px] font-bold leading-relaxed text-[#ffe6a3]">
           오늘의 핵심: {summaryLines[0]}
         </p>
