@@ -107,8 +107,70 @@ export function buildSessionDataSection(b: PromptBundle): string {
   return L.join('\n');
 }
 
+export type MeetingParticipantSelectionMethod = 'RANDOM' | 'MANUAL' | 'EXTERNAL_AI' | 'HYBRID';
+
+export interface ParticipantRecommendation {
+  aiId: string;
+  reason: string;
+}
+
+export function selectRandomMeetingParticipants(
+  activeIds: string[],
+  count = 4,
+  rng: () => number = Math.random,
+): string[] {
+  const pool = [...new Set(activeIds)];
+  const limit = Math.min(Math.max(0, Math.floor(count)), 4, pool.length);
+  for (let i = pool.length - 1; i > 0; i -= 1) {
+    const j = Math.floor(rng() * (i + 1));
+    [pool[i], pool[j]] = [pool[j]!, pool[i]!];
+  }
+  return pool.slice(0, limit);
+}
+
 export function buildDailyAnalysisPrompt(b: PromptBundle, template: string): string {
   return template.replace('{{DATA}}', buildSessionDataSection(b));
+}
+
+export function buildParticipantRecommendationPrompt(
+  b: PromptBundle,
+  activeProfiles: AIProfile[],
+  previousAnalysis = '',
+  previousScenario = '',
+): string {
+  const candidates = activeProfiles.map((p) =>
+    `- ${p.id} | ${p.name} | 역할: ${p.role} | 성향: ${p.personality} | 분석: ${p.analysisStyle} | 공격 ${p.aggression} / 보수 ${p.conservatism} / 추세 ${p.trendFollowing} / 역발상 ${p.reversalPreference} / 변동성 ${p.volatilityTolerance} / 패스 ${p.passPreference}`,
+  ).join('\\n');
+
+  return `당신은 카지노 생존일지의 다음 회의 참가 AI를 추천하는 분석가입니다.
+아래 실제 저장 데이터와 AI 프로필만 사용하세요.
+
+[현재 세션 데이터]
+${buildSessionDataSection(b)}
+
+[이전 외부 분석]
+${previousAnalysis.trim() ? previousAnalysis.trim().slice(0, 5000) : '없음'}
+
+[이전 시나리오]
+${previousScenario.trim() ? previousScenario.trim().slice(0, 5000) : '없음'}
+
+[참가 후보 AI]
+${candidates || '활성 AI 없음'}
+
+[요청]
+1. 다음 회의에 참여할 AI를 최대 4명 추천하세요.
+2. 각 AI마다 왜 이번 회의에 적합한지 데이터 기반으로 설명하세요.
+3. 같은 AI만 반복 추천하지 말고 최근 참여자와 관점의 다양성도 고려하세요.
+4. 미래 결과를 확정적으로 예측하지 마세요.
+5. 후보에 없는 AI를 만들지 마세요.
+
+[출력 형식]
+JSON 하나만 출력하세요.
+{
+  "participants": [
+    { "aiId": "AI_ID", "reason": "추천 이유" }
+  ]
+}`;
 }
 
 export function buildScenarioPrompt(
