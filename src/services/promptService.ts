@@ -1,5 +1,5 @@
 import type {
-  AIProfile, AIRoundRecord, DailySession, GameDefinition, Project, Round,
+  AIProfile, AIRoundRecord, DailySession, ExternalReview, GameDefinition, Project, Round,
 } from '../types';
 import { optionLabel } from '../data/games';
 import { computeUserStats, type DailyAIState } from '../utils/statistics';
@@ -146,6 +146,12 @@ export function extractHighlights(raw: string): Highlights {
     else if (/(특이|포인트|주의|관찰|변화)/.test(l) && notes.length < 4) notes.push(l);
   }
   return { good, bad, notes };
+}
+
+export function getLatestDailyAnalysis(reviews: ExternalReview[], sessionId: string): string {
+  return reviews
+    .filter((r) => r.sessionId === sessionId && r.kind === 'DAILY_ANALYSIS')
+    .sort((a, b) => b.createdAt - a.createdAt)[0]?.rawText ?? '';
 }
 
 export function newReview(sessionId: string, kind: 'DAILY_ANALYSIS' | 'SCENARIO', rawText: string) {
