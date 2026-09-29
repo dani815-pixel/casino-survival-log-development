@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useApp } from '../app/store';
 import { Btn, Card, Empty, Pill } from '../components/ui';
 import { generateSpeech } from '../services/aiService';
-import { getLatestDailyAnalysis } from '../services/promptService';
+import { getLatestDailyAnalysis, isReviewStale } from '../services/promptService';
 import { rankAI, computeDynamicState } from '../utils/statistics';
 import { optionLabel } from '../data/games';
 import { aiColor } from '../components/charts';
@@ -58,10 +58,13 @@ export default function MeetingPage() {
   const [walkIdx, setWalkIdx] = useState(0);
   const turnRef = useRef(0);
 
-  const latestDailyAnalysis = useMemo(
-    () => session ? getLatestDailyAnalysis(reviews, session.id) : '',
-    [reviews, session?.id],
-  );
+  const latestDailyAnalysis = useMemo(() => {
+    if (!session) return '';
+    const latest = reviews
+      .filter((r) => r.sessionId === session.id && r.kind === 'DAILY_ANALYSIS')
+      .sort((a, b) => b.createdAt - a.createdAt)[0] ?? null;
+    return isReviewStale(latest, app.events, session.id) ? '' : latest?.rawText ?? '';
+  }, [reviews, app.events, session?.id]);
   const rankedByPL = useMemo(() => rankAI(aiStates, 'pl'), [aiStates]);
   const lastRound = rounds.length ? rounds.reduce((m, r) => (r.roundNumber > m.roundNumber ? r : m), rounds[0]!) : null;
   const lastResultLabel = game && lastRound ? optionLabel(game, lastRound.actualResult) : undefined;
