@@ -283,27 +283,34 @@ export default function ShortsPage() {
     // 4. AI Flow
     <div key="s4" className="flex h-full flex-col">
       <p className="text-[10px] font-black tracking-[0.3em] text-[#ffd97a]/80">AI FLOW</p>
+      <p className="mt-2 text-xl font-black text-white">오늘 AI가 본 흐름</p>
       <div className="mt-5 space-y-3 overflow-hidden">
         {highlights && highlights.good.length > 0 && (
-          <div>
+          <div className="rounded-2xl bg-emerald-500/10 p-3">
             <p className="mb-2 text-[10px] font-black tracking-[0.18em] text-emerald-400">01 · GOOD FLOW</p>
-            {highlights.good.slice(0, 2).map((l, i) => <p key={i} className="mb-1 rounded-xl bg-emerald-500/10 px-3 py-2 text-[10.5px] font-semibold leading-relaxed text-emerald-100">{l}</p>)}
+            <p className="text-[11px] font-semibold leading-relaxed text-emerald-100">{highlights.good[0]}</p>
+            {highlights.good[1] && <p className="mt-1.5 text-[10px] font-medium leading-relaxed text-emerald-100/70">{highlights.good[1]}</p>}
           </div>
         )}
         {highlights && highlights.bad.length > 0 && (
-          <div>
+          <div className="rounded-2xl bg-rose-500/10 p-3">
             <p className="mb-2 text-[10px] font-black tracking-[0.18em] text-rose-400">02 · RISK FLOW</p>
-            {highlights.bad.slice(0, 2).map((l, i) => <p key={i} className="mb-1 rounded-xl bg-rose-500/10 px-3 py-2 text-[10.5px] font-semibold leading-relaxed text-rose-100">{l}</p>)}
+            <p className="text-[11px] font-semibold leading-relaxed text-rose-100">{highlights.bad[0]}</p>
+            {highlights.bad[1] && <p className="mt-1.5 text-[10px] font-medium leading-relaxed text-rose-100/70">{highlights.bad[1]}</p>}
           </div>
         )}
         {highlights && highlights.notes.length > 0 && (
-          <div>
+          <div className="rounded-2xl bg-amber-500/10 p-3">
             <p className="mb-2 text-[10px] font-black tracking-[0.18em] text-amber-300">03 · KEY NOTE</p>
-            {highlights.notes.slice(0, 2).map((l, i) => <p key={i} className="mb-1 rounded-xl bg-amber-500/10 px-3 py-2 text-[10.5px] font-semibold leading-relaxed text-amber-100">{l}</p>)}
+            <p className="text-[11px] font-semibold leading-relaxed text-amber-100">{highlights.notes[0]}</p>
+            {highlights.notes[1] && <p className="mt-1.5 text-[10px] font-medium leading-relaxed text-amber-100/70">{highlights.notes[1]}</p>}
           </div>
         )}
         {highlights && !highlights.good.length && !highlights.bad.length && !highlights.notes.length && (
-          <p className="mt-8 text-center text-[11px] font-semibold text-white/50">저장된 분석 원문에서 흐름 키워드를 찾지 못했습니다.<br />원문은 다음 화면에서 확인하세요.</p>
+          <div className="mt-8 rounded-2xl bg-white/5 p-4 text-center">
+            <p className="text-sm font-black text-white">분석 흐름 없음</p>
+            <p className="mt-1 text-[10px] font-semibold text-white/45">저장된 AI 분석에서 핵심 흐름을 찾지 못했습니다.</p>
+          </div>
         )}
       </div>
       {foot}
@@ -311,19 +318,20 @@ export default function ShortsPage() {
     // 5. Daily AI Review
     <div key="s5" className="flex h-full flex-col">
       <p className="text-[10px] font-black tracking-[0.3em] text-[#ffd97a]/80">DAILY AI REVIEW</p>
+      <p className="mt-2 text-xl font-black text-white">오늘의 기록과 복기</p>
       <div className="mt-4 rounded-2xl bg-white/5 p-4">
-        <p className="text-[10px] font-bold text-white/45">TODAY'S P/L</p>
-        <p className={`mt-1 text-4xl font-black tabular-nums ${userStats.todayPL >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+        <p className="text-[9px] font-black tracking-[0.18em] text-white/40">TODAY'S P/L</p>
+        <p className={`mt-1 text-5xl font-black tabular-nums ${userStats.todayPL >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
           {bc.showBalance ? fmtSigned(userStats.todayPL, settings.currency, settings.decimals) : '비공개'}
         </p>
         <p className="mt-1 text-[10px] font-semibold text-white/45">{rounds.length}R · {ended ? '세션 종료' : '세션 진행 중'}</p>
-       </div>
+      </div>
       {reviewData.keyRound ? (
-        <div className="mt-3 rounded-2xl border border-white/10 bg-black/20 p-3.5">
-          <p className="text-[10px] font-black tracking-[0.16em] text-[#ffd97a]">KEY MOMENT · R{reviewData.keyRound.roundNumber}</p>
-          <p className="mt-2 text-xl font-black text-white">결과 · {optionLabel(game, reviewData.keyRound.actualResult)}</p>
+        <div className="mt-3 rounded-2xl border border-[#ffd97a]/20 bg-[#ffd97a]/5 p-3.5">
+          <p className="text-[9px] font-black tracking-[0.18em] text-[#ffd97a]">KEY MOMENT · R{reviewData.keyRound.roundNumber}</p>
+          <p className="mt-2 text-xl font-black text-white">{optionLabel(game, reviewData.keyRound.actualResult)}</p>
           {reviewData.keyRound.actualProfitLoss != null && (
-            <p className={`mt-1 text-lg font-black ${reviewData.keyRound.actualProfitLoss >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+            <p className={`mt-1 text-2xl font-black tabular-nums ${reviewData.keyRound.actualProfitLoss >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
               {bc.showBalance ? fmtSigned(reviewData.keyRound.actualProfitLoss, settings.currency, settings.decimals) : '비공개'}
             </p>
           )}
@@ -331,39 +339,42 @@ export default function ShortsPage() {
       ) : (
         <p className="mt-3 rounded-2xl bg-white/5 p-4 text-center text-[11px] font-semibold text-white/45">기록된 라운드가 없습니다.</p>
       )}
-      <div className="mt-3 space-y-2 overflow-hidden">
+      <div className="mt-3 space-y-1.5 overflow-hidden">
         {reviewData.summaryLines.length ? reviewData.summaryLines.map((l, i) => (
-          <p key={i} className="rounded-xl bg-white/5 px-3 py-2 text-[10px] font-semibold leading-relaxed text-slate-100">{l}</p>
+          <p key={i} className={`rounded-xl px-3 py-2 text-[10px] font-semibold leading-relaxed ${i === 0 ? 'bg-[#ffd97a]/10 text-[#ffe6a3]' : 'bg-white/5 text-slate-200'}`}>{l}</p>
         )) : (
           <p className="text-center text-[10px] font-semibold text-white/40">외부 AI 복기 요약이 없습니다.</p>
         )}
       </div>
-      <p className="mt-3 rounded-xl bg-[#ffd97a]/10 px-3 py-2 text-center text-[9px] font-black tracking-wide text-[#ffe6a3]">AI ANALYSIS × REAL SESSION</p>
+      <p className="mt-3 rounded-xl bg-white/[0.03] px-3 py-2 text-center text-[9px] font-black tracking-wide text-white/45">AI ANALYSIS × REAL SESSION</p>
       {foot}
     </div>,
     // 6. Day Complete
     <div key="s6" className="flex h-full flex-col">
       <p className="text-[10px] font-black tracking-[0.3em] text-[#ffd97a]/80">DAY COMPLETE</p>
-      <div className="mt-5 rounded-2xl bg-white/5 p-4">
-        <p className="text-[10px] font-bold text-white/50">USER</p>
-        <p className={`mt-1 text-4xl font-black tabular-nums ${userStats.todayPL >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+      <p className="mt-2 text-2xl font-black text-white">오늘의 생존 기록</p>
+      <div className="mt-5 rounded-3xl border border-white/10 bg-white/5 p-5 text-center">
+        <p className="text-[9px] font-black tracking-[0.2em] text-white/40">TODAY'S RESULT</p>
+        <p className={`mt-2 text-5xl font-black tabular-nums ${userStats.todayPL >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
           {bc.showBalance ? fmtSigned(userStats.todayPL, settings.currency, settings.decimals) : '비공개'}
         </p>
-        <p className="mt-1 text-[11px] font-semibold text-white/60">{rounds.length}R · 예측 적중 {userStats.predictionHitRate}% · 베팅 승률 {userStats.actualBetWinRate}%</p>
+        <p className="mt-2 text-[11px] font-bold text-white/50">{rounds.length} ROUNDS</p>
       </div>
-      <div className="mt-3 space-y-1.5">
-        {ranked.slice(0, 3).map((s, i) => (
-          <div key={s.aiId} className="flex items-center justify-between rounded-xl bg-white/5 px-3.5 py-2 text-[12px] font-bold text-white">
-            <span>{i + 1}. {nameOf(s.aiId)}</span>
-            <span className={s.pl >= 0 ? 'text-emerald-400' : 'text-rose-400'}>{bc.showBalance ? `${s.pl > 0 ? '+' : ''}${s.pl}` : '비공개'}</span>
+      {bc.showRanking && ranked[0] && (
+        <div className="mt-3 rounded-2xl bg-[#ffd97a]/10 p-4">
+          <p className="text-[9px] font-black tracking-[0.18em] text-[#ffd97a]/70">AI TOP 1</p>
+          <div className="mt-1 flex items-center justify-between">
+            <span className="text-lg font-black text-white">{nameOf(ranked[0].aiId)}</span>
+            <span className={`text-lg font-black tabular-nums ${ranked[0].pl >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>{bc.showBalance ? `${ranked[0].pl > 0 ? '+' : ''}${ranked[0].pl}` : '비공개'}</span>
           </div>
-        ))}
-      </div>
+        </div>
+      )}
       {reviewData.summaryLines[0] && (
-        <p className="mt-4 rounded-2xl border border-[#f0c04a]/30 bg-[#f0c04a]/10 px-4 py-3 text-[11px] font-bold leading-relaxed text-[#ffe6a3]">
-          오늘의 핵심: {reviewData.summaryLines[0]}
+        <p className="mt-3 rounded-2xl border border-[#f0c04a]/30 bg-[#f0c04a]/10 px-4 py-3 text-[11px] font-bold leading-relaxed text-[#ffe6a3]">
+          핵심 한 줄 · {reviewData.summaryLines[0]}
         </p>
       )}
+      <p className="mt-auto pt-5 text-center text-[10px] font-black tracking-[0.12em] text-white/35">오늘의 기록은 저장되었습니다</p>
       {foot}
     </div>,
   ];
