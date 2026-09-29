@@ -1,4 +1,8 @@
-import { useEffect, useMemo, useState } from 'react';
+const shortsReveal = "motion-safe:animate-[shortsIn_0.45s_ease-out_both]";
+const shortsReveal2 = "motion-safe:animate-[shortsIn_0.45s_0.12s_ease-out_both]";
+const shortsReveal3 = "motion-safe:animate-[shortsIn_0.45s_0.24s_ease-out_both]";
+
+ useEffect, useMemo, useState } from 'react';
 import { useApp } from '../app/store';
 import { Btn, Card, Empty, Field, NumInput, TextArea, TextInput } from '../components/ui';
 import { buildShortsReviewData, createDefaultShortsTimeline, extractHighlights, getNextEnabledShortsShotIndex } from '../services/promptService';
@@ -224,8 +228,8 @@ export default function ShortsPage() {
     // 1. 오늘의 게임
     <div key="s1" className="flex h-full flex-col">
       <p className="text-[10px] font-black tracking-[0.3em] text-[#ffd97a]/80">TODAY'S GAME</p>
-      <h2 className="mt-3 text-4xl font-black leading-tight text-white">{game.name}</h2>
-       <div className="mt-3 rounded-2xl border border-[#ffd97a]/20 bg-[#ffd97a]/10 px-4 py-3 text-center"><p className="text-[9px] font-black tracking-[0.2em] text-[#ffd97a]/70">TODAY'S TABLE</p><p className="mt-1 text-xl font-black text-white">{rounds.length} ROUNDS</p></div>
+      <h2 className={`mt-3 text-4xl font-black leading-tight text-white ${shortsReveal}`}>{game.name}</h2>
+       <div className={`mt-3 rounded-2xl border border-[#ffd97a]/20 ${shortsReveal2}` bg-[#ffd97a]/10 px-4 py-3 text-center"><p className="text-[9px] font-black tracking-[0.2em] text-[#ffd97a]/70">TODAY'S TABLE</p><p className="mt-1 text-xl font-black text-white">{rounds.length} ROUNDS</p></div>
       <div className="mt-6 space-y-2.5 text-[15px] font-semibold text-slate-200">
         <p className="flex justify-between border-b border-white/10 pb-2"><span className="text-white/50">날짜</span>{session.date}</p>
         <p className="flex justify-between border-b border-white/10 pb-2"><span className="text-white/50">카지노</span>{session.casino}</p>
@@ -244,10 +248,10 @@ export default function ShortsPage() {
     <div key="s2" className="flex h-full flex-col">
       <p className="text-[10px] font-black tracking-[0.3em] text-[#ffd97a]/80">TODAY'S RESULT</p>
       <p className="mt-6 text-center text-[10px] font-black tracking-[0.22em] text-white/40">{ended ? '최종 P/L' : '현재 P/L (진행 중)'}</p>
-      <p className={`mt-2 text-center text-6xl font-black tabular-nums ${userStats.todayPL >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+      <p className={`mt-2 text-center text-6xl font-black ${shortsReveal2} tabular-nums ${userStats.todayPL >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
         {bc.showBalance ? fmtSigned(userStats.todayPL, settings.currency, settings.decimals) : '비공개'}
       </p>
-      <div className="mt-7 grid grid-cols-2 gap-2.5 text-center">
+      <div className={`mt-7 grid grid-cols-2 gap-2.5 text-center ${shortsReveal3}`}>
         <div className="rounded-2xl bg-white/5 px-3 py-4"><p className="text-[9px] font-black text-white/40">START</p><p className="mt-1 text-lg font-black text-white">{moneyOrHide(session.startBalance)}</p></div>
         <div className="rounded-2xl bg-white/5 px-3 py-4"><p className="text-[9px] font-black text-white/40">{ended ? 'FINAL' : 'NOW'}</p><p className="mt-1 text-lg font-black text-white">{moneyOrHide(finalBalance)}</p></div>
         <div className="col-span-2 flex items-center justify-between rounded-2xl bg-white/5 px-4 py-3"><span className="text-[10px] font-black text-white/40">RETURN</span><span className="text-lg font-black text-white">{userStats.dailyReturn}%</span></div>
@@ -283,8 +287,8 @@ export default function ShortsPage() {
     // 4. AI Flow
     <div key="s4" className="flex h-full flex-col">
       <p className="text-[10px] font-black tracking-[0.3em] text-[#ffd97a]/80">AI FLOW</p>
-      <p className="mt-2 text-xl font-black text-white">오늘 AI가 본 흐름</p>
-      <div className="mt-5 space-y-3 overflow-hidden">
+      <p className={`mt-2 text-xl font-black text-white ${shortsReveal}`}>오늘 AI가 본 흐름</p>
+      <div className={`mt-5 space-y-3 overflow-hidden ${shortsReveal2}`}>
         {highlights && highlights.good.length > 0 && (
           <div className="rounded-2xl bg-emerald-500/10 p-3">
             <p className="mb-2 text-[10px] font-black tracking-[0.18em] text-emerald-400">01 · GOOD FLOW</p>
@@ -318,8 +322,8 @@ export default function ShortsPage() {
     // 5. Daily AI Review
     <div key="s5" className="flex h-full flex-col">
       <p className="text-[10px] font-black tracking-[0.3em] text-[#ffd97a]/80">DAILY AI REVIEW</p>
-      <p className="mt-2 text-xl font-black text-white">오늘의 기록과 복기</p>
-      <div className="mt-4 rounded-2xl bg-white/5 p-4">
+      <p className={`mt-2 text-xl font-black text-white ${shortsReveal}`}>오늘의 기록과 복기</p>
+      <div className={`mt-4 rounded-2xl bg-white/5 p-4 ${shortsReveal2}`}>
         <p className="text-[9px] font-black tracking-[0.18em] text-white/40">TODAY'S P/L</p>
         <p className={`mt-1 text-5xl font-black tabular-nums ${userStats.todayPL >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
           {bc.showBalance ? fmtSigned(userStats.todayPL, settings.currency, settings.decimals) : '비공개'}
@@ -327,7 +331,7 @@ export default function ShortsPage() {
         <p className="mt-1 text-[10px] font-semibold text-white/45">{rounds.length}R · {ended ? '세션 종료' : '세션 진행 중'}</p>
       </div>
       {reviewData.keyRound ? (
-        <div className="mt-3 rounded-2xl border border-[#ffd97a]/20 bg-[#ffd97a]/5 p-3.5">
+        <div className={`mt-3 rounded-2xl border border-[#ffd97a]/20 ${shortsReveal2}` bg-[#ffd97a]/5 p-3.5">
           <p className="text-[9px] font-black tracking-[0.18em] text-[#ffd97a]">KEY MOMENT · R{reviewData.keyRound.roundNumber}</p>
           <p className="mt-2 text-xl font-black text-white">{optionLabel(game, reviewData.keyRound.actualResult)}</p>
           {reviewData.keyRound.actualProfitLoss != null && (
@@ -339,7 +343,7 @@ export default function ShortsPage() {
       ) : (
         <p className="mt-3 rounded-2xl bg-white/5 p-4 text-center text-[11px] font-semibold text-white/45">기록된 라운드가 없습니다.</p>
       )}
-      <div className="mt-3 space-y-1.5 overflow-hidden">
+      <div className={`mt-3 space-y-1.5 overflow-hidden ${shortsReveal3}`}>
         {reviewData.summaryLines.length ? reviewData.summaryLines.map((l, i) => (
           <p key={i} className={`rounded-xl px-3 py-2 text-[10px] font-semibold leading-relaxed ${i === 0 ? 'bg-[#ffd97a]/10 text-[#ffe6a3]' : 'bg-white/5 text-slate-200'}`}>{l}</p>
         )) : (
@@ -352,8 +356,8 @@ export default function ShortsPage() {
     // 6. Day Complete
     <div key="s6" className="flex h-full flex-col">
       <p className="text-[10px] font-black tracking-[0.3em] text-[#ffd97a]/80">DAY COMPLETE</p>
-      <p className="mt-2 text-2xl font-black text-white">오늘의 생존 기록</p>
-      <div className="mt-5 rounded-3xl border border-white/10 bg-white/5 p-5 text-center">
+      <p className={`mt-2 text-2xl font-black text-white ${shortsReveal}`}>오늘의 생존 기록</p>
+      <div className={`mt-5 rounded-3xl border border-white/10 bg-white/5 p-5 text-center ${shortsReveal2}`}>
         <p className="text-[9px] font-black tracking-[0.2em] text-white/40">TODAY'S RESULT</p>
         <p className={`mt-2 text-5xl font-black tabular-nums ${userStats.todayPL >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
           {bc.showBalance ? fmtSigned(userStats.todayPL, settings.currency, settings.decimals) : '비공개'}
@@ -374,7 +378,7 @@ export default function ShortsPage() {
           핵심 한 줄 · {reviewData.summaryLines[0]}
         </p>
       )}
-      <p className="mt-auto pt-5 text-center text-[10px] font-black tracking-[0.12em] text-white/35">오늘의 기록은 저장되었습니다</p>
+      <p className={`mt-auto pt-5 text-center text-[10px] ${shortsReveal3} font-black tracking-[0.12em] text-white/35">오늘의 기록은 저장되었습니다</p>
       {foot}
     </div>,
   ];
@@ -383,6 +387,7 @@ export default function ShortsPage() {
 
   return (
     <div className="space-y-4">
+      <style>{`@keyframes shortsIn { from { opacity: 0; transform: translateY(10px) scale(.985); } to { opacity: 1; transform: translateY(0) scale(1); } }`}</style>
       <div className="flex items-center justify-between">
         <h1 className="text-lg font-black text-slate-100">Shorts Studio</h1>
         <span className="text-[11px] font-bold text-slate-500">{cur + 1} / {shots.length} · {timeline.totalDuration}초 · 세로 9:16</span>
