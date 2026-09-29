@@ -105,9 +105,13 @@ export default function ShortsPage() {
     const timer = window.setTimeout(() => {
       const next = getNextEnabledShortsShotIndex(timeline.shots, cur);
       if (next == null) {
-        setPreviewing(false);
-        setPreviewRemaining(0);
-        setCur(timeline.shots.findIndex((shot) => shot.enabled));
+        if (captureMode) {
+          void exitCaptureMode();
+        } else {
+          setPreviewing(false);
+          setPreviewRemaining(0);
+          setCur(timeline.shots.findIndex((shot) => shot.enabled));
+        }
       } else {
         setCur(next);
       }
@@ -117,7 +121,7 @@ export default function ShortsPage() {
       window.clearInterval(tick);
       window.clearTimeout(timer);
     };
-  }, [previewing, cur, timeline.shots]);
+  }, [previewing, cur, timeline.shots, captureMode]);
 
   const enterCaptureMode = async () => {
     const first = timeline.shots.findIndex((shot) => shot.enabled);
@@ -153,6 +157,20 @@ export default function ShortsPage() {
     }, 1000);
     return () => window.clearTimeout(timer);
   }, [captureMode, captureCountdown]);
+
+  useEffect(() => {
+    if (!captureMode) return;
+    const handleFullscreenChange = () => {
+      if (!document.fullscreenElement) {
+        setCaptureMode(false);
+        setCaptureCountdown(0);
+        setPreviewing(false);
+        setPreviewRemaining(0);
+      }
+    };
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
+  }, [captureMode]);
 
   const startPreview = () => {
     const first = timeline.shots.findIndex((shot) => shot.enabled);
@@ -364,24 +382,24 @@ export default function ShortsPage() {
           {timeline.shots.map((shot, i) => (
             <div key={shot.id} className="rounded-xl bg-white/[0.04] p-2.5 ring-1 ring-white/[0.06]">
               <div className="flex items-center gap-2">
-                <button type="button" onClick={() => updateShot(i, { enabled: !shot.enabled })} className={'h-9 w-11 rounded-lg text-[11px] font-black ' + (shot.enabled ? 'bg-emerald-500/15 text-emerald-300' : 'bg-white/5 text-slate-500')}>{shot.enabled ? 'ON' : 'OFF'}</button>
+                <button type="button" onClick={() => updateShot(i, { enabled: !shot.enabled })} disabled={captureMode} className={'h-9 w-11 rounded-lg text-[11px] font-black ' + (shot.enabled ? 'bg-emerald-500/15 text-emerald-300' : 'bg-white/5 text-slate-500')}>{shot.enabled ? 'ON' : 'OFF'}</button>
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-xs font-bold text-white">{shot.title}</p>
                   <p className="text-[10px] text-slate-500">{shot.type}</p>
                 </div>
-                <div className="w-[82px]"><NumInput value={shot.duration} min={0.5} step={0.5} onChange={(v) => updateShot(i, { duration: v ?? 0.5 })} aria-label={shot.title + ' 시간'} /></div>
-                <button type="button" disabled={i === 0} onClick={() => moveShot(i, -1)} className="rounded-lg p-2 text-slate-400 disabled:opacity-20" aria-label="위로"><MoveUp size={15} /></button>
-                <button type="button" disabled={i === timeline.shots.length - 1} onClick={() => moveShot(i, 1)} className="rounded-lg p-2 text-slate-400 disabled:opacity-20" aria-label="아래로"><MoveDown size={15} /></button>
+                <div className="w-[82px]"><NumInput value={shot.duration} min={0.5} step={0.5} onChange={(v) => updateShot(i, { duration: v ?? 0.5 })} disabled={captureMode} aria-label={shot.title + ' 시간'} /></div>
+                <button type="button" disabled={captureMode || i === 0} onClick={() => moveShot(i, -1)} className="rounded-lg p-2 text-slate-400 disabled:opacity-20" aria-label="위로"><MoveUp size={15} /></button>
+                <button type="button" disabled={captureMode || i === timeline.shots.length - 1} onClick={() => moveShot(i, 1)} className="rounded-lg p-2 text-slate-400 disabled:opacity-20" aria-label="아래로"><MoveDown size={15} /></button>
               </div>
             </div>
           ))}
         </div>
-        <div className="mt-3 flex gap-2"><Btn variant="subtle" className="flex-1" onClick={equalizeDurations} disabled={previewing}>균등 배분</Btn><Btn variant="ghost" className="flex-1" onClick={() => { stopPreview(); setTimeline(createDefaultShortsTimeline(30)); }}>30초 초기화</Btn></div>
+        <div className="mt-3 flex gap-2"><Btn variant="subtle" className="flex-1" onClick={equalizeDurations} disabled={previewing}>균등 배분</Btn><Btn variant="ghost" className="flex-1" onClick={() => { if (!captureMode) { stopPreview(); setTimeline(createDefaultShortsTimeline(30)); } }}>30초 초기화</Btn></div>
       </Card>
 
       <Card title="촬영 모드">
         <p className="text-[11px] leading-5 text-slate-400">휴대폰 화면녹화를 먼저 켠 뒤 촬영 모드를 시작하세요. 설정된 Timeline이 자동으로 재생됩니다.</p>
-        <Btn variant="gold" className="mt-3 w-full" onClick={enterCaptureMode}>🎬 세로 촬영 모드 시작</Btn>
+        <Btn variant="gold" className="mt-3 w-full" onClick={enterCaptureMode} disabled={captureMode}>🎬 세로 촬영 모드 시작</Btn>
       </Card>
 
       <Card title="업로드 정보">
@@ -443,8 +461,9 @@ export default function ShortsPage() {
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black">
           <div className="relative aspect-[9/16] h-full max-h-screen w-full max-w-[56.25vh] overflow-hidden bg-[#0b0f17]">
             {captureCountdown > 0 ? (
-              <div className="flex h-full flex-col items-center justify-center">
-                <p className="text-xs font-black tracking-[0.25em] text-slate-500">CAPTURE READY</p>
+              <div className="flex h-full flex-col items-center justify-center bg-black px-8 text-center">
+                <p className="text-xs font-black tracking-[0.25em] text-[#ffd97a]/80">SHORTS CAPTURE READY</p>
+                <p className="mt-3 text-[11px] font-semibold leading-5 text-white/45">잠시 후 자동 재생됩니다.<br />화면녹화가 켜져 있는지 확인하세요.</p>
                 <strong className="mt-3 text-8xl font-black text-white">{captureCountdown}</strong>
               </div>
             ) : (
@@ -456,7 +475,7 @@ export default function ShortsPage() {
                 <div className="flex min-h-0 flex-1 items-center justify-center">
                   {shots[cur]?.node}
                 </div>
-                <button type="button" onClick={exitCaptureMode} className="m-4 rounded-xl bg-white/10 py-3 text-xs font-black text-white">촬영 종료</button>
+                <button type="button" onClick={exitCaptureMode} className="m-4 rounded-xl bg-white/10 py-3 text-xs font-black text-white/70">촬영 종료</button>
               </div>
             )}
           </div>
