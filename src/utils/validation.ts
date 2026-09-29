@@ -158,11 +158,12 @@ export function validateBackup(data: unknown): { ok: boolean; errors: string[] }
   for (const r of arr('aiRecords')) {
     if (!rounds.has(r.roundId as string)) errors.push('roundId가 존재하지 않는 AI 기록이 있습니다.');
     if (!ais.has(r.aiId as string)) errors.push('존재하지 않는 AI의 기록이 있습니다.');
-    const session = sessionById.get(r.sessionId as string);
     const round = roundById.get(r.roundId as string);
     const ai = aiById.get(r.aiId as string);
-    if (!session) errors.push('sessionId가 존재하지 않는 AI 기록이 있습니다.');
-    if (round && round.sessionId !== r.sessionId) errors.push('AI 기록과 라운드의 sessionId가 일치하지 않습니다.');
+    const recordSessionId = typeof r.sessionId === 'string' ? r.sessionId : null;
+    const session = recordSessionId ? sessionById.get(recordSessionId) : (round ? sessionById.get(round.sessionId as string) : undefined);
+    if (recordSessionId && !session) errors.push('sessionId가 존재하지 않는 AI 기록이 있습니다.');
+    if (round && recordSessionId && round.sessionId !== recordSessionId) errors.push('AI 기록과 라운드의 sessionId가 일치하지 않습니다.');
     if (session && ai && ai.projectId !== session.projectId) errors.push('AI 기록의 AI와 세션이 서로 다른 프로젝트를 참조합니다.');
   }
   const events = d.events;
