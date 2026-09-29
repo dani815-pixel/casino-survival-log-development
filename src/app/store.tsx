@@ -455,7 +455,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       }
       await updateSettings({ meeting: { ...settings.meeting, participants: selected } });
     },
-    [session, settings.meeting, updateSettings],
+    [session, settings.meeting, updateSettings, reloadChildren],
   );
 
   const selectMeetingParticipants = useCallback(
