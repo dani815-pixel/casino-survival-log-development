@@ -347,7 +347,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
           target,
           input,
         );
-        await reloadChildren(updatedSession);
+        await reloadChildren(session);
         notify(`R${target.roundNumber} 수정됨 (통계 재계산 완료)`);
       }),
     [session, activeTable, activeShoe, rounds, aiProfiles, aiRecords, latestRound, run, reloadChildren, notify],
