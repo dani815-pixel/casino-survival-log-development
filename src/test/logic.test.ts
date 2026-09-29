@@ -7,7 +7,7 @@ import {
 import { validateBackup, validateRoundInput, validateSessionInput } from '../utils/validation';
 import { generateSpeech, playForRound } from '../services/aiService';
 import { buildParticipantRecommendationPrompt, getLatestDailyAnalysis, getPreviousEndedSession, parseParticipantRecommendations, selectRandomMeetingParticipants } from '../services/promptService';
-import { normalizeMeetingParticipants } from '../app/store';
+import { normalizeMeetingParticipants, resolveMeetingParticipants } from '../app/store';
 import { getGame } from '../data/games';
 import type { AIProfile, AIRoundRecord, DailySession, Round } from '../types';
 
@@ -502,6 +502,20 @@ describe('Daily Session 회의 참여자 저장', () => {
 });
 
 describe('Meeting 참여자 선정', () => {
+  it('Review에서 미리 추첨한 RANDOM 결과는 최종 확정 시 다시 추첨하지 않는다', () => {
+    const activeIds = ['a1', 'a2', 'a3', 'a4', 'a5'];
+    const selected = ['a5', 'a2', 'a4', 'a1'];
+    expect(resolveMeetingParticipants('RANDOM', selected, activeIds)).toEqual(selected);
+  });
+
+  it('RANDOM 확정값이 없을 때만 새 랜덤 선정을 수행한다', () => {
+    const activeIds = ['a1', 'a2', 'a3', 'a4'];
+    const selected = resolveMeetingParticipants('RANDOM', undefined, activeIds);
+    expect(selected).toHaveLength(4);
+    expect(new Set(selected).size).toBe(4);
+    expect(selected.every((id) => activeIds.includes(id))).toBe(true);
+  });
+
   it('랜덤 선정은 활성 AI 중 최대 4명을 중복 없이 반환한다', () => {
     const ids = ['a', 'b', 'c', 'd', 'e', 'f'];
     const selected = selectRandomMeetingParticipants(ids, 4, () => 0);
