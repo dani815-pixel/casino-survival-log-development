@@ -53,6 +53,34 @@ function mkAIRecord(over: Partial<AIRoundRecord>): AIRoundRecord {
 
 // ===== 정산 (P/L 계산) =====
 
+describe('종료 세션 라운드 변경 규칙', () => {
+  it('ENDED 세션은 라운드 변경을 허용하지 않는다', () => {
+    const session = mkSession({ status: 'ENDED' });
+    const errors = validateRoundInput({
+      input: { actualResult: 'dragon', myPrediction: null, bettingAmount: null, memo: '' },
+      session,
+      shoe: { id: 'sh1', tableSessionId: 't1', sessionId: 's1', shoeNumber: 1, startedAt: 1, endedAt: null, status: 'ACTIVE' },
+      game: dt,
+      rounds: [],
+      currentBalance: 100,
+    });
+    expect(errors).toContain('이미 종료된 세션입니다.');
+  });
+
+  it('PLAYING 세션은 라운드 변경 검증을 통과할 수 있다', () => {
+    const session = mkSession({ status: 'PLAYING' });
+    const errors = validateRoundInput({
+      input: { actualResult: 'dragon', myPrediction: null, bettingAmount: null, memo: '' },
+      session,
+      shoe: { id: 'sh1', tableSessionId: 't1', sessionId: 's1', shoeNumber: 1, startedAt: 1, endedAt: null, status: 'ACTIVE' },
+      game: dt,
+      rounds: [],
+      currentBalance: 100,
+    });
+    expect(errors).not.toContain('이미 종료된 세션입니다.');
+  });
+});
+
 describe('Backup 이벤트/리뷰 관계 검증', () => {
   it('유효한 이벤트와 리뷰는 연결된 sessionId를 사용하면 통과한다', () => {
     const backup = {
