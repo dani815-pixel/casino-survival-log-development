@@ -378,7 +378,7 @@ export default function ShortsPage() {
           핵심 한 줄 · {reviewData.summaryLines[0]}
         </p>
       )}
-      <p className={`mt-auto pt-5 text-center text-[10px] ${shortsReveal3} font-black tracking-[0.12em] text-white/35">오늘의 기록은 저장되었습니다</p>
+      <p className={`mt-auto pt-5 text-center text-[10px] ${shortsReveal3} font-black tracking-[0.12em] text-white/35`}>오늘의 기록은 저장되었습니다</p>
       {foot}
     </div>,
   ];
