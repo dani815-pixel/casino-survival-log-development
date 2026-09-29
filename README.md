@@ -1,151 +1,298 @@
 # 카지노 생존일지 V1 (Casino Survival Diary)
 
-실제 게임 기록 + AI 가상 플레이 + 외부 AI 분석 + 2D 미팅룸 + Shorts 결과 화면을 **하나의 로컬 데이터 흐름**으로 연결하는 모바일 전용 웹앱입니다. 서버 없이 브라우저에서 독립적으로 실행되며, 모든 데이터는 기기의 **IndexedDB**에만 저장됩니다.
+모바일 전용 로컬 카지노 기록·분석·AI 가상 플레이·외부 AI 리뷰·2D Meeting Room·Shorts Studio 웹앱입니다.
 
-> 이 앱은 실제 카지노 결과를 예측하지 않습니다. AI의 가상 플레이와 상태 변화는 기록·관찰·리뷰를 위한 데이터이며, 미래 결과를 확정적으로 예측하는 표현을 사용하지 않습니다.
+> 실제 게임 기록은 로컬에 정확하게 저장하고, AI는 가상 플레이와 분석/연출을 담당하며, 외부 AI 결과는 사용자가 직접 붙여넣어 저장합니다.
 
-## 1. 주요 기능
+실제 게임 결과의 미래 예측이나 수익을 보장하는 서비스가 아닙니다.
 
-- **프로젝트/세션 관리**: Project → DailySession → TableSession → Shoe → Round 계층 구조
-- **빠른 라운드 기록**: 결과 → 예측 → 베팅금액 → 저장 (모바일 한 손 조작, Prediction과 Actual Betting 통계 완전 분리)
-- **AI 가상 플레이**: 시드를 통해 생성된 AI(초기 12명, 무제한 추가 가능)가 사용자와 동일한 Daily Start로 매일 가상 플레이. Pass는 승/패 미포함, 자산 ≤ 0이면 그날 탈락(다음날 리셋), Career 통계는 프로젝트 기간 누적
-- **2D Meeting Room**: 전체 AI가 근무하는 오피스, 최대 4명의 미팅 참여자는 앞 좌석 배치, 성향 기반 말풍선
-- **차트**: 사용자 잔액 변화, 일별/누적 P/L, AI 자산·순위 변화, 승률, 커리어 비교 (외부 라이브러리 없는 SVG)
-- **외부 AI 연동(클립보드)**: Daily Analysis Prompt 생성/복사 → 외부 AI → 결과 붙여넣기/저장 → Next-Day Scenario Prompt 생성
-- **Shorts Studio**: 저장된 분석을 바탕으로 9:16 세로 카드 6화면 생성 (스크린샷용)
-- **백업/복구**: 전체 데이터 JSON Export/Import(검증 포함), Round CSV Export, Archive 우선 정책
+## 1. 현재 프로젝트 상태
 
-## 2. 기술 스택
+| 항목 | 상태 |
+|---|---|
+| React / TypeScript / Vite | 사용 중 |
+| 모바일 우선 UI | 구현 |
+| IndexedDB 로컬 저장 | 구현 |
+| Project / Daily Session | 구현 |
+| Table / Shoe / Round | 구현 |
+| 사용자 실제 P/L | 구현 |
+| AI 가상 플레이 | 구현 |
+| AI Ranking / Charts | 구현 |
+| External AI Prompt / Paste | 구현 |
+| Daily Analysis / Scenario | 구현 |
+| Meeting Room | 구현 |
+| Meeting 참여자 선택 | 구현 |
+| Shorts Studio 6화면 | 구현 |
+| Shorts Timeline / Preview | 구현 |
+| Shorts 9:16 Capture Mode | 구현 |
+| Shorts 제목/설명/해시태그 | 구현 |
+| Backup / Restore | 구현 |
+| 회귀 테스트 | 구현 |
+| 실제 npm test / npm run build | 아직 이 저장소 환경에서 실행 확인하지 않음 |
 
-React 19 · TypeScript · Vite · Tailwind CSS 4 · IndexedDB(네이티브 API 래퍼) · Vitest · Lucide Icons
+## 2. 핵심 데이터 흐름
 
-백엔드/DB 서버/API 서버/외부 AI API/게임 엔진을 사용하지 않습니다.
+PROJECT → DAILY SESSION → TABLE SESSION → SHOE → ROUND
 
-## 3. 디렉터리 구조
+ROUND → USER ACTUAL P/L + AI VIRTUAL PLAY → AI DAILY STATE / RANKING
 
-```text
+→ REVIEW PROMPT → 외부 AI 복사 → 결과 붙여넣기 → ExternalReview
+
+ExternalReview → MEETING / SHORTS STUDIO → NEXT-DAY SCENARIO
+
+외부 AI API를 앱에서 직접 호출하지 않습니다.
+
+## 3. 주요 화면
+
+HOME / GAME / AI / MEETING ROOM / CHARTS / REVIEW / SHORTS / SETTINGS
+
+### HOME
+- 프로젝트 정보
+- Daily Start Capital
+- 현재 세션 P/L
+- 프로젝트 누적 P/L
+- 현재 세션 상태
+
+### GAME
+- 카지노 / 게임 / 테이블
+- Shoe 관리
+- Round 기록
+- Prediction과 Actual Betting 분리
+- Round 수정/삭제
+- Stop Loss / Win Cut 경고
+- Pause / Resume / End
+
+### AI
+- 초기 12명 Seed
+- AI 추가/수정/보관
+- 성향 0~100
+- AI 가상 플레이
+- Dynamic State
+- 일일 자산 / P/L
+- Career 누적 통계
+- 독립 기준 Ranking
+
+### MEETING ROOM
+- 2D 오피스
+- 전체 AI 근무
+- 최대 4명 미팅 참여
+- 성향 기반 대화
+- 말풍선
+- 애니메이션
+- 유효한 외부 AI 분석을 회의 컨텍스트로 사용
+
+### CHARTS
+- 사용자 실제 자산/P&L
+- 프로젝트 누적 P/L
+- AI 가상 자산/P&L
+- AI Ranking
+- 사용자와 AI 데이터 분리
+
+### REVIEW
+- 현재 세션 분석 Prompt 생성
+- Prompt 복사
+- 외부 AI 결과 붙여넣기
+- Daily Analysis 저장
+- 최신 분석 확인
+- stale 상태 확인
+- Next-Day Scenario Prompt
+
+### SHORTS
+6개 화면:
+1. TODAY'S GAME
+2. TODAY'S RESULT
+3. AI RANKING
+4. AI FLOW
+5. DAILY AI REVIEW
+6. DAY COMPLETE
+
+기능:
+- 화면 ON/OFF
+- 화면별 재생 시간
+- 화면 순서 변경
+- 전체 재생 시간
+- 균등 시간 배분
+- Preview 자동 재생
+- 3초 Capture Countdown
+- 브라우저 Fullscreen
+- 9:16 Capture Mode
+- 마지막 화면 자동 종료
+- 제목/설명/해시태그 각각 복사
+
+## 4. Shorts Studio 동작
+
+기본 전체 길이는 30초입니다.
+
+화면 콘텐츠는 배열 위치가 아니라 ShortsShot.type으로 매핑합니다. 따라서 Timeline에서 순서를 변경해도 콘텐츠가 다른 화면과 섞이지 않습니다.
+
+Preview:
+- 활성화된 화면만 재생
+- OFF 화면 자동 건너뜀
+- 화면별 duration 사용
+- 마지막 활성 화면에서 종료
+
+Capture:
+촬영 시작 → 3초 Countdown → 첫 활성 화면 → 자동 화면 전환 → 마지막 활성 화면 → 자동 종료
+
+Fullscreen API가 unavailable이어도 9:16 Capture Layout은 유지합니다.
+
+## 5. External AI 분석 계약
+
+Daily Analysis Prompt는 사실 데이터와 해석을 구분하도록 요구합니다.
+
+금지:
+- 저장 데이터에 없는 숫자 생성
+- 존재하지 않는 라운드 생성
+- 실제 P/L 조작
+- 이전 세션 데이터를 현재 세션 사실처럼 사용
+- 미래 결과 보장
+- 특정 베팅 결과 보장
+
+### 핵심 사건
+
+후보:
+- 가장 큰 실제 손익 변동
+- 사용자와 AI의 선택 충돌
+- 연속 결과/연승/연패
+- AI 의견 집중/분산
+- AI 탈락 또는 큰 잔고 변화
+
+후보가 없으면 "뚜렷한 핵심 사건 없음"으로 표시합니다.
+
+### Story Type
+
+TURNAROUND / AI_CLASH / STREAK / AI_ELIMINATION / BIG_SWING / STEADY / MIXED
+
+실제 기록에 가장 적합한 하나를 선택하며 별도 DB 필드로 저장하지 않습니다.
+
+### Shorts JSON
+
+{
+  "shorts": {
+    "title": "짧고 구체적인 제목",
+    "description": "오늘 실제 기록 기반 설명",
+    "hashtags": ["#카지노", "#카지노생존일지", "#카지노기록"]
+  }
+}
+
+앱은 shorts를 선택적으로 파싱합니다. 구형 AI 결과처럼 Shorts 객체가 없어도 rawText는 보존됩니다.
+
+## 6. 핵심 비즈니스 규칙
+
+Project Start Capital ≠ Daily Start Capital
+
+User Actual Bankroll ≠ AI Virtual Bankroll
+
+사용자 계산 잔고:
+Daily Start + 실제 베팅 P/L
+
+수동 session.endBalance는 기록/비교용이며 실제 P/L 원천이 아닙니다.
+
+Shorts 최종 잔고도 userStats.currentBalance를 사용합니다.
+
+Prediction과 Actual Betting은 완전히 분리합니다.
+
+AI:
+- 매일 Daily Start에서 시작
+- Pass는 승/패에 포함하지 않음
+- AI 기록이 없는 라운드는 loss 처리하지 않음
+- 자산이 0 이하이면 ELIMINATED
+- Career 통계는 프로젝트 기간 누적
+- Dynamic State는 연출/행동 변화용이며 실제 확률을 의미하지 않음
+
+Stop Loss / Win Cut:
+- 경고만 표시
+- 자동 종료 없음
+
+## 7. Meeting 참여자
+
+활성 AI 전체가 Pool입니다.
+
+최대 4명이며 RANDOM / MANUAL / EXTERNAL_AI / HYBRID 방식을 지원합니다.
+
+최종 선택은 DailySession.meetingParticipants에 저장됩니다.
+
+현재 Project의 active AI만 선택하도록 프로젝트 격리가 적용됩니다.
+
+## 8. 데이터 저장
+
+IndexedDB가 주요 저장소입니다.
+
+Store:
+- projects
+- sessions
+- tables
+- shoes
+- rounds
+- aiProfiles
+- aiRecords
+- events
+- reviews
+- settings
+
+LocalStorage는 마지막 탭/프로젝트 같은 가벼운 UI 상태에만 사용합니다.
+
+## 9. Backup / Restore
+
+JSON Backup은 전체 데이터와 schemaVersion을 저장합니다.
+
+Restore 시 Project, Session, Table, Shoe, Round, AI, Review, Event 관계와 숫자/ID/중복/음수 데이터를 검증합니다.
+
+Project와 AI는 삭제보다 Archive 우선 정책을 사용합니다.
+
+## 10. 기술 구조
+
 src/
-├─ app/store.tsx          # 전역 상태(React Context) + 액션 (UI ↔ 서비스 연결)
-├─ components/            # ui.tsx(공통 UI), charts.tsx(SVG 차트/레이더), AIEditor.tsx
-├─ pages/                 # Home, Game, AI, Meeting, Charts, Review, Shorts, Settings
-├─ services/
-│  ├─ sessionService.ts   # 프로젝트/세션/슈/테이블/라운드 라이프사이클 (IndexedDB 쓰기)
-│  ├─ aiService.ts        # AI 가상 플레이 엔진 + 대화 생성 (순수 함수, rng 주입)
-│  ├─ promptService.ts    # 분석/시나리오 프롬프트 생성 + 외부 AI 결과 파싱
-│  ├─ backupService.ts    # JSON Export/Import, CSV, 초기화
-│  └─ queries.ts          # 프로젝트 전체 데이터 로드
-├─ db/db.ts               # IndexedDB 래퍼 (schemaVersion, 인덱스)
-├─ models == types/       # types/index.ts (모든 엔티티 타입)
-├─ utils/                 # settle(정산), statistics(통계), validation(검증), format, id
-├─ data/
-│  ├─ games.ts            # 게임 정의 설정 데이터 (Dragon Tiger, Baccarat)
-│  ├─ seedAI.ts           # 초기 AI 12명 seed
-│  └─ defaults.ts         # 기본 설정 + 프롬프트 템플릿
-└─ test/logic.test.ts     # Vitest 핵심 로직 테스트
-```
+- app/store.tsx: 전역 상태와 UI ↔ 서비스 연결
+- components/: 공통 UI/차트
+- pages/: Home, Game, AI, Meeting, Charts, Review, Shorts, Settings
+- services/sessionService.ts: Session/Shoe/Round lifecycle
+- services/aiService.ts: AI 가상 플레이/대화
+- services/promptService.ts: Prompt/Parser/Shorts 변환
+- services/backupService.ts: Export/Import
+- services/queries.ts: 데이터 로드
+- db/db.ts: IndexedDB
+- types/index.ts: 핵심 타입
+- utils/statistics.ts: 통계
+- utils/validation.ts: 검증
+- utils/settle.ts: 게임 정산
+- data/games.ts: 게임 정의
+- data/seedAI.ts: 초기 AI
+- data/defaults.ts: 기본 설정/프롬프트
+- test/logic.test.ts: 핵심 로직 테스트
 
-## 4. 설치 & 실행
+## 11. 개발 명령
 
-```bash
 npm install
-npm run dev        # 개발 서버
-npm run build      # 프로덕션 빌드 (dist/)
-npx vitest run     # 테스트 실행
-```
+npm run dev
+npm test
+npm run build
 
-## 5. Netlify 배포
+현재 문서 작성 시점에는 이 환경에서 실제 npm test와 npm run build를 실행해 성공 여부를 확인하지 않았습니다.
 
-`netlify.toml`이 포함되어 있습니다. Build command `npm run build`, Publish `dist`, SPA fallback(`/* → /index.html`) 설정 완료. 저장소를 연결하면 바로 배포됩니다.
+## 12. 개발 원칙
 
-## 6. IndexedDB 구조
+1. 수정 전에 수정 기획서를 먼저 작성합니다.
+2. 관련 현재 파일을 다시 조회합니다.
+3. 실제 결함이 있는 파일만 수정합니다.
+4. 데이터 규칙을 먼저 확인하고 UI를 수정합니다.
+5. 순수 로직 변경에는 회귀 테스트를 추가합니다.
+6. 수정 후 GitHub 파일을 다시 조회합니다.
+7. 실제 실행하지 않은 테스트/build를 성공했다고 말하지 않습니다.
+8. 기존 데이터와 구형 AI 결과 호환성을 유지합니다.
+9. Project 간 데이터 혼합을 허용하지 않습니다.
+10. 수동 endBalance를 P/L 원천으로 사용하지 않습니다.
+11. 외부 AI 결과에 없는 숫자를 앱이 임의 생성하지 않습니다.
+12. Shorts 콘텐츠를 배열 index에 고정하지 않습니다.
+13. 문제 없는 기능까지 대규모 리팩터링하지 않습니다.
 
-DB `casino-survival-db` (version = `schemaVersion: 1`, `meta` 스토어에 기록, 향후 마이그레이션 추가 가능)
+## 13. 다음 작업
 
-| 스토어 | 내용 | 인덱스 |
-|---|---|---|
-| projects | Project (status: ACTIVE/CLOSED/ARCHIVED) | - |
-| sessions | DailySession (종료 시 요약 필드 저장) | projectId |
-| tables | TableSession | sessionId |
-| shoes | Shoe | sessionId, tableSessionId |
-| rounds | Round (사용자 기록) | sessionId, shoeId |
-| aiProfiles | AIProfile (능력치 0~100, 성격/말투/대화 예시) | projectId |
-| aiRecords | AIRoundRecord (AI 가상 플레이, Pass/탈락 포함) | sessionId, roundId, aiId |
-| events | ROUND/SHOE_STARTED/SHOE_ENDED/TABLE_CHANGED/PAUSED/RESUMED/SESSION_ENDED | sessionId |
-| reviews | 외부 AI 결과 (원문 rawText + parsedSummary) | sessionId |
-| settings | 앱 설정(통화, 템플릿, 미팅, 브로드캐스트) | - |
+최우선:
+1. 실제 환경에서 npm test 실행
+2. 실제 환경에서 npm run build 실행
+3. 오류 발생 시 오류별 수정 기획서 작성
+4. 모바일 실제 화면에서 Shorts Capture 확인
+5. 필요하면 Netlify 배포 검증
 
-LocalStorage는 마지막 탭/마지막 프로젝트 같은 가벼운 UI 상태에만 사용합니다.
-
-## 7. 핵심 비즈니스 규칙
-
-- `PROJECT START CAPITAL ≠ DAILY START CAPITAL` (프로젝트 시작 자금과 일일 시작 금액은 별개)
-- `USER ACTUAL BANKROLL ≠ AI VIRTUAL BANKROLL` (AI 수익이 사용자 잔액에 영향 없음)
-- `PREDICTION ≠ ACTUAL BET` (통계 완전 분리)
-- AI 자산은 **매일 Daily Start로 리셋**, Career 통계는 **프로젝트 기간 누적**
-- **Pass는 승/패 미포함**, AI 기록이 없는 라운드는 loss 처리하지 않음
-- 자산 ≤ 0 → **ELIMINATED** (당일 플레이 중지)
-- Stop Loss / Win Cut은 **경고만 표시, 자동 종료 없음**
-- AI 수/미팅 참여자(최대 4명)/좌석 배치는 모두 데이터 기반 (하드코딩 없음)
-
-## 8. Backup / Restore
-
-- **JSON Export**: 전체 스토어를 `{ schemaVersion, exportedAt, data }` 형태로 다운로드
-- **JSON Import**: JSON 형식 → schemaVersion → 필수 필드/타입 → 관계 무결성(존재하지 않는 sessionId/shoeId/roundId/aiId, roundNumber 중복, 음수 베팅 등) 검증 후, 중복 ID는 제외하고 신규만 삽입. 결과를 `Projects: 1 / Sessions: 3 / Rounds: 127...` 형태로 표시, 실패 시 원인 문장 표시
-- **CSV Export**: `date, casino, game, table, shoe, round, actualResult, prediction, betAmount, profitLoss`
-- **Archive 우선**: Project/AI는 삭제 대신 보관 상태로 전환
-
-## 9. External AI Prompt 사용법
-
-1. 게임을 기록한 뒤 **REVIEW** 탭으로 이동
-2. **[Prompt 생성] → [복사]** (현재 세션에 실제 저장된 데이터만 포함: 사용자 기록, 전체 AI 기록/자산/손익/승패/적중률, 구간 흐름, 의견 집중/분산, 사용자-AI 일치율, 탈락, 성향, dynamic state)
-3. 외부 AI에 붙여넣고 분석 요청 (미래 예측이 아닌 관찰/조건 기반 해석을 요청하는 템플릿)
-4. 결과를 복사해 **텍스트 영역에 붙여넣기 → [저장]** (원문 보존 + 가능한 범위의 요약 추출)
-5. 저장이 완료되면 **[시나리오 Prompt 생성]** 활성화 (이전 데이터 + 데일리 분석 기반 다음날 관찰 시나리오)
-
-프롬프트 템플릿(Analysis/Scenario/Meeting/Content)은 **SETTINGS → 외부 AI**에서 수정할 수 있습니다. `{{DATA}}` 위치에 세션 데이터가 삽입됩니다.
-
-## 10. Project / Session / Table / Shoe / Round 흐름
-
-```text
-Project 시작 → Daily Session 시작(User와 전체 활성 AI가 같은 금액으로 출발)
-  → Round 입력 (즉시 IndexedDB 저장, 새로고침 후에도 유지)
-  → [슈 종료] Shoe N → Shoe N+1 (기존 기록 유지)
-  → [테이블 이동] 새 테이블/새 슈 생성 + TABLE_CHANGED 이벤트 (기존 기록 유지)
-  → [일시정지/재개] (PAUSED 중 라운드 입력 차단)
-  → [게임 종료] 종료 금액 + 요약 저장
-최근 라운드는 수정/삭제 가능 — 통계는 저장된 전체 데이터 기준으로 재계산됩니다.
-```
-
-## 11. AI 시스템
-
-- 초기 12명 seed(성향/능력치/말투/대화 예시 포함), 제한 없이 추가/수정/보관 가능 (SETTINGS → AI)
-- 능력치 6종(공격성/보수성/트렌드추종/역발상/변동성/패스성향, 0~100) → SVG 레이더 차트
-- 매 라운드 분석/선택/가상베팅/정산/현재자산 기록. Meeting 미참여 AI도 가상 플레이 계속
-- Dynamic State(confidence/streak/recentAgreement 등)는 최근 결과로부터 계산 — **서사/행동 변화용이며 실제 확률 변화를 의미하지 않음**
-- 랭킹은 단일 점수 없이 7개 기준(순자산/손익/수익률/적중률/베팅 성적/최근 흐름/누적 손익) 선택형
-
-## 12. Meeting Room
-
-- CSS/SVG 기반 2D 오피스. 좌석은 활성 AI 배열에 따라 자동 생성 (고정 HTML 없음)
-- 미팅 참여자(최대 4명)는 앞 테이블에 배치, 참여자는 페이지 하단 칩으로 선택
-- 캐릭터 상태: IDLE/WORKING/MEETING/WALKING/PAUSED/ELIMINATED + CSS 애니메이션(설정에서 끄기 가능)
-- 말풍선: AI 이름 + 내용. 각자의 personality/speechStyle/dialogExamples/commonExpressions와 최근 성과를 반영해 생성, 대화 속도 설정 가능
-
-## 13. Shorts Studio
-
-- 데일리 분석이 저장된 세션에서만 열림 (9:16 세로 카드, 캡처 최적화)
-- 6화면: ① 오늘의 게임 ② 오늘의 결과 ③ AI Ranking ④ AI Flow ⑤ Daily AI Review ⑥ Day Complete
-- [이전]/[다음]/[완료] 네비게이션. 브로드캐스트 설정(잔액/베팅금액/AI 이름/랭킹 표시·숨김)이 반영됨
-
-## 14. Testing
-
-`npx vitest run`
-
-P/L 정산(타이 규칙 포함), 예측/실제베팅 통계 분리, 라운드/세션 검증(음수·잔액 초과·일시정지·잘못된 옵션), AI 가상 플레이(시작 자산, Pass, 탈락 후 미참여), dynamic state, 랭킹 정렬, JSON Import 검증(schemaVersion/관계 무결성/중복/음수) — 핵심 로직은 UI와 독립된 순수 함수로 구현되어 있습니다.
-
-## 15. 향후 확장 아이디어
-
-- PWA(오프라인 설치) — 현재 구조는 서버 없이 동작하므로 manifest/service worker 추가로 확장 가능
-- 이벤트 스토어 기반 타임라인/Activity Log 화면
-- IndexedDB schemaVersion 마이그레이션 경로 추가
-- games.ts에 새 게임 정의 추가 (결과 옵션/정산 규칙이 설정 데이터로 분리되어 있음)
+다음 AI는 새 기능을 추가하기 전에 docs/AI_HANDOFF.md를 먼저 읽고, 기능별 상세 규칙은 docs/SKILL_SPEC.md를 읽으세요.
