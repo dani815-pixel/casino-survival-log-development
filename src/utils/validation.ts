@@ -96,10 +96,24 @@ export function validateBackup(data: unknown): { ok: boolean; errors: string[] }
   if (errors.length) return { ok: false, errors: errors.slice(0, 3) };
 
   // 타입 스팟 체크
-  for (const s of arr('sessions')) if (typeof s.startBalance !== 'number') errors.push('startBalance가 숫자가 아닌 세션이 있습니다.');
+  for (const s of arr('sessions')) {
+    if (typeof s.startBalance !== 'number' || !Number.isFinite(s.startBalance)) errors.push('startBalance가 유효한 숫자가 아닌 세션이 있습니다.');
+    for (const k of ['endBalance', 'calculatedEndBalance', 'actualProfitLoss']) {
+      const value = s[k];
+      if (value != null && (typeof value !== 'number' || !Number.isFinite(value))) {
+        errors.push(`${k}가 유효한 숫자가 아닌 세션이 있습니다.`);
+      }
+    }
+    if (s.endBalanceMismatch != null && typeof s.endBalanceMismatch !== 'boolean') {
+      errors.push('endBalanceMismatch가 boolean이 아닌 세션이 있습니다.');
+    }
+  }
   for (const r of arr('rounds')) {
-    if (typeof r.roundNumber !== 'number') errors.push('roundNumber가 숫자가 아닌 라운드가 있습니다.');
-    if (typeof r.bettingAmount === 'number' && r.bettingAmount < 0) errors.push('음수 베팅 금액이 포함된 라운드가 있습니다.');
+    if (typeof r.roundNumber !== 'number' || !Number.isFinite(r.roundNumber)) errors.push('roundNumber가 유효한 숫자가 아닌 라운드가 있습니다.');
+    if (typeof r.bettingAmount === 'number' && (!Number.isFinite(r.bettingAmount) || r.bettingAmount < 0)) errors.push('유효하지 않은 베팅 금액이 포함된 라운드가 있습니다.');
+    if (r.actualProfitLoss != null && (typeof r.actualProfitLoss !== 'number' || !Number.isFinite(r.actualProfitLoss))) {
+      errors.push('actualProfitLoss가 유효한 숫자가 아닌 라운드가 있습니다.');
+    }
   }
   for (const p of arr('aiProfiles')) {
     for (const k of ['aggression', 'conservatism', 'trendFollowing', 'reversalPreference', 'volatilityTolerance', 'passPreference']) {
