@@ -7,6 +7,7 @@ import {
 import { validateBackup, validateRoundInput, validateSessionInput } from '../utils/validation';
 import { generateSpeech, playForRound } from '../services/aiService';
 import { getLatestDailyAnalysis } from '../services/promptService';
+import { normalizeMeetingParticipants } from '../app/store';
 import { getGame } from '../data/games';
 import type { AIProfile, AIRoundRecord, DailySession, Round } from '../types';
 
@@ -451,6 +452,22 @@ describe('Meeting 외부 AI 분석 연결', () => {
     expect(withAnalysis).toContain('외부 분석 메모');
     expect(withAnalysis).toContain('손실 구간');
     expect(withoutAnalysis).not.toContain('외부 분석 메모');
+  });
+});
+
+// ===== Meeting 설정 / 프로젝트 격리 =====
+
+describe('Meeting 참여자 설정', () => {
+  it('이전 프로젝트 AI ID를 제거하고 현재 프로젝트 활성 AI로 기본값을 채운다', () => {
+    expect(normalizeMeetingParticipants(['old-a', 'old-b'], ['new-a', 'new-b', 'new-c'])).toEqual(['new-a', 'new-b', 'new-c']);
+  });
+
+  it('현재 프로젝트의 유효한 참여자는 유지하되 최대 4명으로 제한한다', () => {
+    expect(normalizeMeetingParticipants(['a', 'x', 'b', 'c', 'd', 'e'], ['a', 'b', 'c', 'd', 'e', 'f'])).toEqual(['a', 'b', 'c', 'd']);
+  });
+
+  it('활성 AI가 없으면 참여자도 비워 둔다', () => {
+    expect(normalizeMeetingParticipants(['a'], [])).toEqual([]);
   });
 });
 
