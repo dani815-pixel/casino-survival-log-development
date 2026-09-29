@@ -211,7 +211,7 @@ export default function ReviewPage() {
         <p className="mt-2 text-[10px] text-slate-600">선택 {selectedAI.length}/4 · 확정 전에는 현재 회의 참여자가 변경되지 않습니다.</p>
       </Card>
 
-      {/* 3. Next-Day Scenario */}
+      {/* 4. Next-Day Scenario */}
       <Card
         title="3. Next-Day Scenario Prompt"
         right={latestAnalysis ? <Pill tone="good">활성</Pill> : <Pill tone="dim">분석 저장 후 활성화</Pill>}
