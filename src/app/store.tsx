@@ -521,7 +521,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
       run(async () => {
         if (!session) throw new Error('먼저 세션을 시작하세요.');
         if (!raw.trim()) throw new Error('붙여넣을 내용이 비어 있습니다.');
-        await db.put('reviews', newReview(session.id, kind, raw));
+        const review = newReview(session.id, kind, raw);
+        const shorts = parseShortsContent(raw);
+        await db.put('reviews', shorts ? { ...review, shorts } : review);
         await reloadChildren(session);
         notify(kind === 'DAILY_ANALYSIS' ? '외부 AI 분석 결과가 저장되었습니다' : '시나리오 결과가 저장되었습니다');
       }),
