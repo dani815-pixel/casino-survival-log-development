@@ -6,7 +6,7 @@ import {
 } from '../utils/statistics';
 import { validateBackup, validateRoundInput, validateSessionInput } from '../utils/validation';
 import { generateSpeech, playForRound } from '../services/aiService';
-import { buildParticipantRecommendationPrompt, buildSessionDataSection, getLatestDailyAnalysis, getPreviousEndedSession, isReviewStale, parseParticipantRecommendations, selectRandomMeetingParticipants } from '../services/promptService';
+import { buildParticipantRecommendationPrompt, buildSessionDataSection, createDefaultShortsTimeline, getLatestDailyAnalysis, getPreviousEndedSession, isReviewStale, normalizeShortsTimeline, parseParticipantRecommendations, parseShortsContent, selectRandomMeetingParticipants } from '../services/promptService';
 import { isLatestProjectLoad, normalizeMeetingParticipants, resolveMeetingParticipants } from '../app/store';
 import { getGame } from '../data/games';
 import type { AIProfile, AIRoundRecord, DailySession, Round } from '../types';
@@ -897,6 +897,32 @@ describe('Meeting 참여자 설정', () => {
 });
 
 // ===== Shorts / 외부 AI 분석 연결 =====
+
+describe('Shorts Timeline / 외부 AI 콘텐츠', () => {
+  it('기본 Shorts Timeline은 6개 화면과 전체 30초를 생성한다', () => {
+    const timeline = createDefaultShortsTimeline(30);
+    expect(timeline.shots).toHaveLength(6); expect(timeline.totalDuration).toBe(30);
+    expect(timeline.shots.reduce((sum, shot) => sum + shot.duration, 0)).toBe(30);
+  });
+  it('비활성 Shot은 총 재생시간에서 제외하고 순서를 정규화한다', () => {
+    const timeline = normalizeShortsTimeline([
+      { id: 'b', type: 'TODAYS_RESULT', title: '결과', order: 9, duration: 7, enabled: true },
+      { id: 'a', type: 'TODAYS_GAME', title: '게임', order: 1, duration: 4, enabled: false },
+    ]);
+    expect(timeline.shots.map((s) => s.order)).toEqual([0, 1]); expect(timeline.totalDuration).toBe(7);
+  });
+  it('외부 AI JSON의 쇼츠 제목/설명/해시태그를 안전하게 추출한다', () => {
+    const content = parseShortsContent(JSON.stringify({ shorts: { title: '오늘 가장 위험했던 순간', description: '오늘의 카지노 생존일지 기록입니다.', hashtags: ['#카지노', '#카지노생존일지', '#카지노'] } }));
+    expect(content).toEqual({ title: '오늘 가장 위험했던 순간', description: '오늘의 카지노 생존일지 기록입니다.', hashtags: ['#카지노', '#카지노생존일지'] });
+  });
+  it('마크다운 코드펜스가 섞인 JSON에서도 쇼츠 정보를 읽는다', () => {
+    expect(parseShortsContent('결과입니다.\n```json\n{"shorts":{"title":"제목","description":"설명","hashtags":"#카지노 #쇼츠"}}\n```')).toEqual({ title: '제목', description: '설명', hashtags: ['#카지노', '#쇼츠'] });
+  });
+  it('구형 AI 결과에 shorts가 없으면 undefined로 유지한다', () => {
+    expect(parseShortsContent('{"dailyAnalysis":"기존 결과"}')).toBeUndefined();
+    expect(parseShortsContent('일반 텍스트 분석')).toBeUndefined();
+  });
+});
 
 describe('Shorts 외부 AI 분석 연결', () => {
   it('현재 세션에서는 최신 Daily Analysis를 선택하고 Scenario는 제외한다', () => {
