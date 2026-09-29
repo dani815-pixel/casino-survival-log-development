@@ -117,6 +117,7 @@ export interface AIRoundRecord {
 
 export type EventType =
   | 'ROUND'
+  | 'MEETING_PARTICIPANTS_SELECTED'
   | 'SHOE_STARTED'
   | 'SHOE_ENDED'
   | 'TABLE_CHANGED'
