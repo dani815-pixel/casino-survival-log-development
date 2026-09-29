@@ -143,5 +143,11 @@ export function validateBackup(data: unknown): { ok: boolean; errors: string[] }
     if (!rounds.has(r.roundId as string)) errors.push('roundId가 존재하지 않는 AI 기록이 있습니다.');
     if (!ais.has(r.aiId as string)) errors.push('존재하지 않는 AI의 기록이 있습니다.');
   }
+  for (const e of (d.events as Record<string, unknown>[])) {
+    if (!sessions.has(e.sessionId as string)) errors.push('sessionId가 존재하지 않는 이벤트가 있습니다.');
+  }
+  for (const r of (d.reviews as Record<string, unknown>[])) {
+    if (!sessions.has(r.sessionId as string)) errors.push('sessionId가 존재하지 않는 외부 분석/시나리오가 있습니다.');
+  }
   return { ok: errors.length === 0, errors: errors.slice(0, 5) };
 }
