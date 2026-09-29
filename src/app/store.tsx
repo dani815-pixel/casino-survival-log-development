@@ -9,12 +9,13 @@ import { buildBlankAI } from '../data/seedAI';
 import { getGame } from '../data/games';
 import * as svc from '../services/sessionService';
 import * as backup from '../services/backupService';
-import { newReview } from '../services/promptService';
+import { newReview, selectRandomMeetingParticipants, type MeetingParticipantSelectionMethod, type ParticipantRecommendation } from '../services/promptService';
 import {
   computeAllAIStates, computeUserStats, type DailyAIState, type UserStats,
 } from '../utils/statistics';
 import type { RoundInput } from '../utils/validation';
 import { todayStr } from '../utils/format';
+import { uid } from '../utils/id';
 
 export type Tab = 'home' | 'game' | 'ai' | 'meeting' | 'charts' | 'review' | 'shorts' | 'settings';
 
@@ -68,6 +69,7 @@ interface Ctx {
   upsertAI: (p: AIProfile) => Promise<boolean>;
   addAI: () => Promise<boolean>;
   setMeetingParticipants: (ids: string[]) => Promise<void>;
+  selectMeetingParticipants: (method: MeetingParticipantSelectionMethod, ids?: string[], recommendations?: ParticipantRecommendation[]) => Promise<boolean>;
   saveReview: (kind: ExternalReview['kind'], raw: string) => Promise<boolean>;
   deleteReview: (id: string) => Promise<void>;
   updateSettings: (patch: Partial<AppSettings>) => Promise<void>;
@@ -434,6 +436,36 @@ export function AppProvider({ children }: { children: ReactNode }) {
     [settings.meeting, updateSettings],
   );
 
+  const selectMeetingParticipants = useCallback(
+    (method: MeetingParticipantSelectionMethod, ids?: string[], recommendations: ParticipantRecommendation[] = []) =>
+      run(async () => {
+        if (!session) throw new Error('먼저 Daily Session을 시작하세요.');
+        const activeIds = aiProfiles.filter((p) => p.active).map((p) => p.id);
+        const selected = method === 'RANDOM'
+          ? selectRandomMeetingParticipants(activeIds)
+          : normalizeMeetingParticipants(ids ?? [], activeIds);
+        if (selected.length === 0) throw new Error('참여 가능한 활성 AI가 없습니다.');
+
+        await updateSettings({
+          meeting: { ...settings.meeting, participants: selected },
+        });
+        await db.put('events', {
+          id: uid(),
+          sessionId: session.id,
+          type: 'MEETING_PARTICIPANTS_SELECTED',
+          timestamp: Date.now(),
+          payload: {
+            method,
+            selectedAI: selected,
+            recommendations: recommendations.slice(0, 4),
+          },
+        });
+        await reloadChildren(session);
+        notify(`다음 회의 참가 AI ${selected.length}명 확정`);
+      }),
+    [session, aiProfiles, settings.meeting, updateSettings, run, reloadChildren, notify],
+  );
+
   const saveReview = useCallback(
     (kind: ExternalReview['kind'], raw: string) =>
       run(async () => {
@@ -509,7 +541,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     createProject, openProject, archiveProject, updateProjectInfo,
     startSession, addRound, updateLastRound, deleteLastRound,
     doEndShoe, doMoveTable, doTogglePause, doEndSession,
-    upsertAI, addAI, setMeetingParticipants,
+    upsertAI, addAI, setMeetingParticipants, selectMeetingParticipants,
     saveReview, deleteReview, updateSettings,
     exportJSON, importJSON, exportCSV, resetAll,
   };
