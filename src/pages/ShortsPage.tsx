@@ -225,6 +225,7 @@ export default function ShortsPage() {
     <div key="s1" className="flex h-full flex-col">
       <p className="text-[10px] font-black tracking-[0.3em] text-[#ffd97a]/80">TODAY'S GAME</p>
       <h2 className="mt-3 text-4xl font-black leading-tight text-white">{game.name}</h2>
+       <div className="mt-3 rounded-2xl border border-[#ffd97a]/20 bg-[#ffd97a]/10 px-4 py-3 text-center"><p className="text-[9px] font-black tracking-[0.2em] text-[#ffd97a]/70">TODAY'S TABLE</p><p className="mt-1 text-xl font-black text-white">{rounds.length} ROUNDS</p></div>
       <div className="mt-6 space-y-2.5 text-[15px] font-semibold text-slate-200">
         <p className="flex justify-between border-b border-white/10 pb-2"><span className="text-white/50">날짜</span>{session.date}</p>
         <p className="flex justify-between border-b border-white/10 pb-2"><span className="text-white/50">카지노</span>{session.casino}</p>
@@ -468,8 +469,8 @@ export default function ShortsPage() {
             ) : (
               <div className="flex h-full flex-col">
                 <div className="flex items-center justify-between px-4 py-3 text-[10px] font-black text-white/60">
-                  <span>{cur + 1} / {shots.length}</span>
-                  <span>{previewRemaining.toFixed(1)}s</span>
+                  <span className="rounded-full bg-white/10 px-2 py-1">{cur + 1} / {shots.length}</span>
+                  <span className="rounded-full bg-[#ffd97a]/15 px-2 py-1 text-[#ffd97a]">{previewRemaining.toFixed(1)}s</span>
                 </div>
                 <div className="flex min-h-0 flex-1 items-center justify-center">
                   {shots[cur]?.node}
