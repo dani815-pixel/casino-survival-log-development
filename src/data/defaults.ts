@@ -14,6 +14,19 @@ export const DEFAULT_PROMPT_TEMPLATES: PromptTemplates = {
 
 {{DATA}}
 
+[오늘의 스토리 타입]
+오늘의 핵심 사건을 기준으로 아래 후보 중 하나를 선택하세요.
+- TURNAROUND: 초반과 후반 흐름이 실제로 바뀐 날
+- AI_CLASH: 사용자와 AI의 선택 차이가 핵심인 날
+- STREAK: 연속 결과 또는 연승·연패가 핵심인 날
+- AI_ELIMINATION: AI 탈락 또는 급격한 AI 잔고 변화가 핵심인 날
+- BIG_SWING: 큰 실제 손익 변동이 핵심인 날
+- STEADY: 뚜렷한 변곡점 없이 비교적 일정한 흐름인 날
+- MIXED: 여러 특징이 있으나 하나의 우선 서사로 설명하기 어려운 날
+storyType과 storyReason을 최종 분석에 포함하세요.
+storyReason은 실제 저장 데이터에 근거한 짧은 이유로 작성하세요.
+조건이 부족하면 억지로 극적인 타입을 선택하지 마세요.
+
 [오늘의 핵심 사건 선정]
 분석을 시작하기 전에 아래 후보를 실제 저장 데이터에서 확인하세요.
 - 가장 큰 실제 손익 변동이 발생한 라운드
