@@ -53,6 +53,48 @@ function mkAIRecord(over: Partial<AIRoundRecord>): AIRoundRecord {
 
 // ===== 정산 (P/L 계산) =====
 
+describe('Backup 이벤트/리뷰 관계 검증', () => {
+  it('유효한 이벤트와 리뷰는 연결된 sessionId를 사용하면 통과한다', () => {
+    const backup = {
+      schemaVersion: 1,
+      data: {
+        projects: [{ id: 'p1' }],
+        sessions: [{ id: 's1', projectId: 'p1', startBalance: 100, endBalance: null, calculatedEndBalance: null, actualProfitLoss: 0 }],
+        tables: [{ id: 't1', sessionId: 's1' }],
+        shoes: [{ id: 'sh1', sessionId: 's1', tableSessionId: 't1' }],
+        rounds: [{ id: 'r1', sessionId: 's1', shoeId: 'sh1', roundNumber: 1, bettingAmount: null, actualProfitLoss: null }],
+        aiProfiles: [],
+        aiRecords: [],
+        events: [{ id: 'e1', sessionId: 's1' }],
+        reviews: [{ id: 'v1', sessionId: 's1' }],
+        settings: [],
+      },
+    };
+    expect(validateBackup(backup).ok).toBe(true);
+  });
+
+  it('이벤트나 리뷰가 존재하지 않는 sessionId를 참조하면 백업을 거부한다', () => {
+    const backup = {
+      schemaVersion: 1,
+      data: {
+        projects: [{ id: 'p1' }],
+        sessions: [{ id: 's1', projectId: 'p1', startBalance: 100, endBalance: null, calculatedEndBalance: null, actualProfitLoss: 0 }],
+        tables: [],
+        shoes: [],
+        rounds: [],
+        aiProfiles: [],
+        aiRecords: [],
+        events: [{ id: 'e1', sessionId: 'missing' }],
+        reviews: [{ id: 'v1', sessionId: 'missing' }],
+        settings: [],
+      },
+    };
+    const result = validateBackup(backup);
+    expect(result.ok).toBe(false);
+    expect(result.errors.some((e) => e.includes('이벤트'))).toBe(true);
+  });
+});
+
 describe('settleBet (P/L 계산)', () => {
   it('Dragon Tiger 승리 시 1:1 정산', () => {
     expect(settleBet(dt, 'dragon', 10, 'dragon')).toBe(10);
