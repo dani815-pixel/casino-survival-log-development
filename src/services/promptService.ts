@@ -263,6 +263,16 @@ export function extractHighlights(raw: string): Highlights {
   return { good, bad, notes };
 }
 
+export function isReviewStale(review: ExternalReview | null, events: AppEvent[], sessionId: string): boolean {
+  if (!review || review.kind !== 'DAILY_ANALYSIS') return false;
+  return events.some(
+    (event) =>
+      event.sessionId === sessionId &&
+      event.type === 'ROUND' &&
+      event.timestamp > review.createdAt,
+  );
+}
+
 export function getLatestDailyAnalysis(reviews: ExternalReview[], sessionId: string): string {
   return reviews
     .filter((r) => r.sessionId === sessionId && r.kind === 'DAILY_ANALYSIS')
