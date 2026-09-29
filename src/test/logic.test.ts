@@ -930,6 +930,12 @@ describe('Shorts Preview sequence', () => {
     expect(getNextEnabledShortsShotIndex(timeline.shots, 5)).toBeNull();
   });
 
+  it('마지막 활성 화면 이후에는 자동 촬영을 계속할 다음 화면이 없다', () => {
+    const timeline = createDefaultShortsTimeline(30);
+    const shots = timeline.shots.map((shot, i) => ({ ...shot, enabled: i === 5 }));
+    expect(getNextEnabledShortsShotIndex(shots, 5)).toBeNull();
+  });
+
   it('모든 화면이 OFF이면 재생 대상이 없다', () => {
     const timeline = createDefaultShortsTimeline(30);
     const shots = timeline.shots.map((shot) => ({ ...shot, enabled: false }));
