@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { useApp } from '../app/store';
 import { Btn, Card, Empty, Pill, TextArea, copyText } from '../components/ui';
-import { buildDailyAnalysisPrompt, buildParticipantRecommendationPrompt, buildScenarioPrompt, selectRandomMeetingParticipants, type ParticipantRecommendation, type PromptBundle } from '../services/promptService';
+import { buildDailyAnalysisPrompt, buildParticipantRecommendationPrompt, buildScenarioPrompt, parseParticipantRecommendations, selectRandomMeetingParticipants, type ParticipantRecommendation, type PromptBundle } from '../services/promptService';
 import { computeAllAIStates } from '../utils/statistics';
 import { Check, ClipboardCopy, ClipboardPaste, FileText, RefreshCw, Shuffle, Sparkles, Trash2, Users } from 'lucide-react';
 import { timeStr, dateStr } from '../utils/format';
@@ -170,20 +170,19 @@ export default function ReviewPage() {
             </div>
             <TextArea value={recommendationPaste} onChange={(e) => setRecommendationPaste(e.target.value)} placeholder='외부 AI의 JSON 결과를 붙여넣으세요. 예: {"participants":[{"aiId":"AI01","reason":"..."}]}' className="min-h-[100px]" />
             <Btn className="w-full" onClick={() => {
-              try {
-                const parsed = JSON.parse(recommendationPaste) as { participants?: ParticipantRecommendation[] };
-                const valid = Array.isArray(parsed.participants)
-                  ? parsed.participants.filter((x) => x && typeof x.aiId === 'string' && typeof x.reason === 'string' && aiProfiles.some((p) => p.active && p.id === x.aiId)).slice(0, 4)
-                  : [];
-                if (!valid.length) throw new Error('유효한 AI 추천이 없습니다.');
-                setRecommendations(valid);
-                setSelectedAI(valid.map((x) => x.aiId));
-                setSelectionMode('EXTERNAL_AI');
-                setRecommendationPaste('');
-                app.notify('외부 AI 추천을 불러왔습니다. 확인 후 최종 확정하세요.');
-              } catch {
-                app.notify('추천 JSON 형식을 확인하세요.');
+              const parsed = parseParticipantRecommendations(
+                recommendationPaste,
+                aiProfiles.filter((p) => p.active).map((p) => p.id),
+              );
+              if (parsed.error) {
+                app.notify(parsed.error);
+                return;
               }
+              setRecommendations(parsed.recommendations);
+              setSelectedAI(parsed.recommendations.map((x) => x.aiId));
+              setSelectionMode('EXTERNAL_AI');
+              setRecommendationPaste('');
+              app.notify('외부 AI 추천을 불러왔습니다. 확인 후 최종 확정하세요.');
             }}>추천 결과 불러오기</Btn>
             {recommendations.length > 0 && (
               <div className="space-y-1.5">
