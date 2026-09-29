@@ -432,9 +432,15 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const setMeetingParticipants = useCallback(
     async (ids: string[]) => {
-      await updateSettings({ meeting: { ...settings.meeting, participants: ids.slice(0, 4) } });
+      const selected = ids.slice(0, 4);
+      if (session) {
+        const updatedSession: DailySession = { ...session, meetingParticipants: selected, updatedAt: Date.now() };
+        await db.put('sessions', updatedSession);
+        setSession(updatedSession);
+      }
+      await updateSettings({ meeting: { ...settings.meeting, participants: selected } });
     },
-    [settings.meeting, updateSettings],
+    [session, settings.meeting, updateSettings],
   );
 
   const selectMeetingParticipants = useCallback(
