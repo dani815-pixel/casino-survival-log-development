@@ -285,19 +285,19 @@ export default function ShortsPage() {
       <div className="mt-5 space-y-3 overflow-hidden">
         {highlights && highlights.good.length > 0 && (
           <div>
-            <p className="mb-2 text-[10px] font-black tracking-[0.18em] text-emerald-400">좋은 흐름</p>
+            <p className="mb-2 text-[10px] font-black tracking-[0.18em] text-emerald-400">01 · GOOD FLOW</p>
             {highlights.good.slice(0, 2).map((l, i) => <p key={i} className="mb-1 rounded-xl bg-emerald-500/10 px-3 py-2 text-[10.5px] font-semibold leading-relaxed text-emerald-100">{l}</p>)}
           </div>
         )}
         {highlights && highlights.bad.length > 0 && (
           <div>
-            <p className="mb-2 text-[10px] font-black tracking-[0.18em] text-rose-400">부진 흐름</p>
+            <p className="mb-2 text-[10px] font-black tracking-[0.18em] text-rose-400">02 · RISK FLOW</p>
             {highlights.bad.slice(0, 2).map((l, i) => <p key={i} className="mb-1 rounded-xl bg-rose-500/10 px-3 py-2 text-[10.5px] font-semibold leading-relaxed text-rose-100">{l}</p>)}
           </div>
         )}
         {highlights && highlights.notes.length > 0 && (
           <div>
-            <p className="mb-2 text-[10px] font-black tracking-[0.18em] text-amber-300">특이사항</p>
+            <p className="mb-2 text-[10px] font-black tracking-[0.18em] text-amber-300">03 · KEY NOTE</p>
             {highlights.notes.slice(0, 2).map((l, i) => <p key={i} className="mb-1 rounded-xl bg-amber-500/10 px-3 py-2 text-[10.5px] font-semibold leading-relaxed text-amber-100">{l}</p>)}
           </div>
         )}
@@ -316,11 +316,12 @@ export default function ShortsPage() {
           {bc.showBalance ? fmtSigned(userStats.todayPL, settings.currency, settings.decimals) : '비공개'}
         </p>
         <p className="mt-1 text-[10px] font-semibold text-white/45">{rounds.length}R · {ended ? '세션 종료' : '세션 진행 중'}</p>
+         <div className="mt-3 h-1 overflow-hidden rounded-full bg-white/10"><div className="h-full w-2/3 rounded-full bg-[#ffd97a]" /></div>
       </div>
       {reviewData.keyRound ? (
         <div className="mt-3 rounded-2xl border border-white/10 bg-black/20 p-3.5">
-          <p className="text-[10px] font-black text-[#ffd97a]">KEY MOMENT · R{reviewData.keyRound.roundNumber}</p>
-          <p className="mt-1 text-[12px] font-bold text-white">결과 {optionLabel(game, reviewData.keyRound.actualResult)}</p>
+          <p className="text-[10px] font-black tracking-[0.16em] text-[#ffd97a]">KEY MOMENT · R{reviewData.keyRound.roundNumber}</p>
+          <p className="mt-2 text-xl font-black text-white">결과 · {optionLabel(game, reviewData.keyRound.actualResult)}</p>
           {reviewData.keyRound.actualProfitLoss != null && (
             <p className={`mt-1 text-lg font-black ${reviewData.keyRound.actualProfitLoss >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
               {bc.showBalance ? fmtSigned(reviewData.keyRound.actualProfitLoss, settings.currency, settings.decimals) : '비공개'}
