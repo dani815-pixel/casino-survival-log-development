@@ -7,7 +7,7 @@ import {
 import { validateBackup, validateRoundInput, validateSessionInput } from '../utils/validation';
 import { generateSpeech, playForRound } from '../services/aiService';
 import { buildParticipantRecommendationPrompt, buildSessionDataSection, getLatestDailyAnalysis, getPreviousEndedSession, isReviewStale, parseParticipantRecommendations, selectRandomMeetingParticipants } from '../services/promptService';
-import { normalizeMeetingParticipants, resolveMeetingParticipants } from '../app/store';
+import { isLatestProjectLoad, normalizeMeetingParticipants, resolveMeetingParticipants } from '../app/store';
 import { getGame } from '../data/games';
 import type { AIProfile, AIRoundRecord, DailySession, Round } from '../types';
 
@@ -111,6 +111,13 @@ describe('종료 세션 라운드 변경 규칙', () => {
       currentBalance: 100,
     });
     expect(errors).not.toContain('이미 종료된 세션입니다.');
+  });
+});
+
+describe('프로젝트 전환 로딩 격리', () => {
+  it('새 프로젝트 로딩이 시작되면 이전 프로젝트의 늦은 응답은 무시한다', () => {
+    expect(isLatestProjectLoad(1, 2)).toBe(false);
+    expect(isLatestProjectLoad(2, 2)).toBe(true);
   });
 });
 
