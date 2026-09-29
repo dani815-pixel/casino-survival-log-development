@@ -246,11 +246,10 @@ export default function ShortsPage() {
       <p className={`mt-2 text-center text-6xl font-black tabular-nums ${userStats.todayPL >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
         {bc.showBalance ? fmtSigned(userStats.todayPL, settings.currency, settings.decimals) : '비공개'}
       </p>
-      <div className="mt-8 space-y-2.5 text-[15px] font-semibold text-slate-200">
-        <p className="flex justify-between border-b border-white/10 pb-2"><span className="text-white/50">시작</span>{moneyOrHide(session.startBalance)}</p>
-        <p className="flex justify-between border-b border-white/10 pb-2"><span className="text-white/50">{ended ? '종료' : '현재'}</span>{moneyOrHide(finalBalance)}</p>
-        <p className="flex justify-between border-b border-white/10 pb-2"><span className="text-white/50">수익률</span>{userStats.dailyReturn}%</p>
-        <p className="flex justify-between"><span className="text-white/50">라운드</span>{rounds.length}R · 베팅 {bc.showBetAmount ? userStats.actualBetCount : '비공개'}</p>
+      <div className="mt-7 grid grid-cols-2 gap-2.5 text-center">
+        <div className="rounded-2xl bg-white/5 px-3 py-4"><p className="text-[9px] font-black text-white/40">START</p><p className="mt-1 text-lg font-black text-white">{moneyOrHide(session.startBalance)}</p></div>
+        <div className="rounded-2xl bg-white/5 px-3 py-4"><p className="text-[9px] font-black text-white/40">{ended ? 'FINAL' : 'NOW'}</p><p className="mt-1 text-lg font-black text-white">{moneyOrHide(finalBalance)}</p></div>
+        <div className="col-span-2 flex items-center justify-between rounded-2xl bg-white/5 px-4 py-3"><span className="text-[10px] font-black text-white/40">RETURN</span><span className="text-lg font-black text-white">{userStats.dailyReturn}%</span></div>
       </div>
       {foot}
     </div>,
@@ -259,10 +258,10 @@ export default function ShortsPage() {
       <p className="text-[10px] font-black tracking-[0.3em] text-[#ffd97a]/80">AI RANKING</p>
       {bc.showRanking ? (
         <>
-          <div className="mt-5 space-y-2">
+          <div className="mt-6 space-y-2.5">
             {ranked.slice(0, 5).map((s, i) => (
-              <div key={s.aiId} className="flex items-center gap-2.5 rounded-2xl bg-white/5 px-3.5 py-2.5 ring-1 ring-white/[0.05]">
-                <span className="flex h-7 w-7 items-center justify-center rounded-full text-[11px] font-black text-[#0b0f17]" style={{ background: aiColor(aiProfiles.findIndex((p) => p.id === s.aiId)) }}>{i + 1}</span>
+              <div key={s.aiId} className={`flex items-center gap-2.5 rounded-2xl px-3.5 py-3 ring-1 ring-white/[0.05] ${i === 0 ? 'bg-[#ffd97a]/10 ring-[#ffd97a]/25' : 'bg-white/5'}`}>
+                <span className={`flex h-8 w-8 items-center justify-center rounded-full text-[11px] font-black text-[#0b0f17] ${i === 0 ? 'scale-110' : ''}`} style={{ background: aiColor(aiProfiles.findIndex((p) => p.id === s.aiId)) }}>{i + 1}</span>
                 <span className="min-w-0 flex-1 truncate text-[13px] font-bold text-white">{nameOf(s.aiId)}{s.eliminated && <Skull size={11} className="ml-1 inline text-rose-400" />}</span>
                 <span className="text-right">
                   <span className="block text-[12px] font-black tabular-nums text-white">{bc.showBalance ? `$${s.bankroll}` : ''}</span>
@@ -283,7 +282,7 @@ export default function ShortsPage() {
     // 4. AI Flow
     <div key="s4" className="flex h-full flex-col">
       <p className="text-[10px] font-black tracking-[0.3em] text-[#ffd97a]/80">AI FLOW</p>
-      <div className="mt-4 space-y-3 overflow-hidden">
+      <div className="mt-5 space-y-3 overflow-hidden">
         {highlights && highlights.good.length > 0 && (
           <div>
             <p className="mb-2 text-[10px] font-black tracking-[0.18em] text-emerald-400">좋은 흐름</p>
@@ -338,7 +337,7 @@ export default function ShortsPage() {
           <p className="text-center text-[10px] font-semibold text-white/40">외부 AI 복기 요약이 없습니다.</p>
         )}
       </div>
-      <p className="mt-2 text-center text-[9px] font-semibold text-white/30">외부 AI 분석 + 실제 세션 기록</p>
+      <p className="mt-3 rounded-xl bg-[#ffd97a]/10 px-3 py-2 text-center text-[9px] font-black tracking-wide text-[#ffe6a3]">AI ANALYSIS × REAL SESSION</p>
       {foot}
     </div>,
     // 6. Day Complete
