@@ -423,11 +423,14 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const upsertAI = useCallback(
     (p: AIProfile) =>
       run(async () => {
-        await db.put('aiProfiles', { ...p, updatedAt: Date.now() });
-        setAiProfiles((prev) => prev.map((x) => (x.id === p.id ? { ...p, updatedAt: Date.now() } : x)));
-        notify(`${p.name} 저장됨`);
+        if (!project) throw new Error('프로젝트를 먼저 선택해주세요.');
+        if (p.projectId !== project.id) throw new Error('현재 프로젝트의 AI만 저장할 수 있습니다.');
+        const updated: AIProfile = { ...p, projectId: project.id, updatedAt: Date.now() };
+        await db.put('aiProfiles', updated);
+        setAiProfiles((prev) => prev.map((x) => (x.id === updated.id ? updated : x)));
+        notify(`${updated.name} 저장됨`);
       }),
-    [run, notify],
+    [project, run, notify],
   );
 
   const addAI = useCallback(
@@ -457,7 +460,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const setMeetingParticipants = useCallback(
     async (ids: string[]) => {
-      const selected = ids.slice(0, 4);
+      const activeIds = aiProfiles.filter((p) => p.active).map((p) => p.id);
+      const selected = normalizeMeetingParticipants(ids, activeIds);
       if (session) {
         const updatedSession: DailySession = { ...session, meetingParticipants: selected, updatedAt: Date.now() };
         await db.put('sessions', updatedSession);
@@ -478,7 +482,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       }
       await updateSettings({ meeting: { ...settings.meeting, participants: selected } });
     },
-    [session, settings.meeting, updateSettings, reloadChildren],
+    [session, aiProfiles, settings.meeting, updateSettings, reloadChildren],
   );
 
   const selectMeetingParticipants = useCallback(
