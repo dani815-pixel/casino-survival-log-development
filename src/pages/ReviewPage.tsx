@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useApp } from '../app/store';
 import { Btn, Card, Empty, Pill, TextArea, copyText } from '../components/ui';
-import { buildDailyAnalysisPrompt, buildParticipantRecommendationPrompt, buildScenarioPrompt, getPreviousEndedSession, getLatestDailyAnalysis, parseParticipantRecommendations, selectRandomMeetingParticipants, type ParticipantRecommendation, type PromptBundle } from '../services/promptService';
+import { buildDailyAnalysisPrompt, buildParticipantRecommendationPrompt, buildScenarioPrompt, getPreviousEndedSession, getLatestDailyAnalysis, isReviewStale, parseParticipantRecommendations, selectRandomMeetingParticipants, type ParticipantRecommendation, type PromptBundle } from '../services/promptService';
 import { computeAllAIStates } from '../utils/statistics';
 import { getGame } from '../data/games';
 import { getProjectBundle, type ProjectBundle } from '../services/queries';
@@ -53,6 +53,7 @@ export default function ReviewPage() {
     .sort((a, b) => b.createdAt - a.createdAt);
   const latestAnalysis = analysisReviews[0] ?? null;
   const latestScenario = scenarioReviews[0] ?? null;
+  const latestAnalysisStale = isReviewStale(latestAnalysis, app.events, session?.id ?? '');
 
   const bundle: PromptBundle | null = useMemo(() => {
     if (!project || !session || !game) return null;
@@ -174,7 +175,7 @@ export default function ReviewPage() {
       </Card>
 
       {/* 2. External AI Result */}
-      <Card title="2. 외부 AI 분석 결과 붙여넣기" right={latestAnalysis && <Pill tone="good">저장됨</Pill>}>
+      <Card title="2. 외부 AI 분석 결과 붙여넣기" right={latestAnalysis && <Pill tone={latestAnalysisStale ? 'warn' : 'good'}>{latestAnalysisStale ? '기록 변경됨 · 새 분석 필요' : '저장됨'}</Pill>}>
         <TextArea
           value={paste}
           onChange={(e) => setPaste(e.target.value)}
