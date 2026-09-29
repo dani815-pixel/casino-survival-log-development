@@ -164,11 +164,21 @@ export function parseParticipantRecommendations(
   }
 }
 
+export function getPreviousEndedSession(
+  sessions: DailySession[],
+  currentSessionId: string,
+): DailySession | null {
+  return [...sessions]
+    .filter((s) => s.id !== currentSessionId && s.status === 'ENDED')
+    .sort((a, b) => b.createdAt - a.createdAt)[0] ?? null;
+}
+
 export function buildParticipantRecommendationPrompt(
   b: PromptBundle,
   activeProfiles: AIProfile[],
   previousAnalysis = '',
   previousScenario = '',
+  previousParticipants: string[] = [],
 ): string {
   const candidates = activeProfiles.map((p) =>
     `- ${p.id} | ${p.name} | 역할: ${p.role} | 성향: ${p.personality} | 분석: ${p.analysisStyle} | 공격 ${p.aggression} / 보수 ${p.conservatism} / 추세 ${p.trendFollowing} / 역발상 ${p.reversalPreference} / 변동성 ${p.volatilityTolerance} / 패스 ${p.passPreference}`,
@@ -177,24 +187,28 @@ export function buildParticipantRecommendationPrompt(
   return `당신은 카지노 생존일지의 다음 회의 참가 AI를 추천하는 분석가입니다.
 아래 실제 저장 데이터와 AI 프로필만 사용하세요.
 
-[현재 세션 데이터]
+[추천 기준 Daily Session 데이터]
 ${buildSessionDataSection(b)}
 
-[이전 외부 분석]
+[추천 기준 세션의 이전 외부 분석]
 ${previousAnalysis.trim() ? previousAnalysis.trim().slice(0, 5000) : '없음'}
 
-[이전 시나리오]
+[추천 기준 세션의 이전 시나리오]
 ${previousScenario.trim() ? previousScenario.trim().slice(0, 5000) : '없음'}
+
+[직전 회의 참여 AI]
+${previousParticipants.length ? previousParticipants.join(', ') : '기록 없음'}
 
 [참가 후보 AI]
 ${candidates || '활성 AI 없음'}
 
 [요청]
 1. 다음 회의에 참여할 AI를 최대 4명 추천하세요.
-2. 각 AI마다 왜 이번 회의에 적합한지 데이터 기반으로 설명하세요.
-3. 같은 AI만 반복 추천하지 말고 최근 참여자와 관점의 다양성도 고려하세요.
-4. 미래 결과를 확정적으로 예측하지 마세요.
-5. 후보에 없는 AI를 만들지 마세요.
+2. 추천 기준은 위 Daily Session의 실제 기록과 외부 분석/시나리오입니다.
+3. 직전 회의 참여 AI를 참고하되, 같은 AI만 반복 추천하지 말고 관점의 다양성도 고려하세요.
+4. 각 AI마다 왜 이번 회의에 적합한지 데이터 기반으로 설명하세요.
+5. 미래 결과를 확정적으로 예측하지 마세요.
+6. 후보에 없는 AI를 만들지 마세요.
 
 [출력 형식]
 JSON 하나만 출력하세요.
