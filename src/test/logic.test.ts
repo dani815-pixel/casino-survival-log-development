@@ -5,7 +5,8 @@ import {
   computeAIState, computeDynamicState, rankAI, computeProjectCumulativePL,
 } from '../utils/statistics';
 import { validateBackup, validateRoundInput, validateSessionInput } from '../utils/validation';
-import { playForRound } from '../services/aiService';
+import { generateSpeech, playForRound } from '../services/aiService';
+import { getLatestDailyAnalysis } from '../services/promptService';
 import { getGame } from '../data/games';
 import type { AIProfile, AIRoundRecord, DailySession, Round } from '../types';
 
@@ -425,6 +426,31 @@ describe('AI 랭킹 기준 독립성', () => {
     ];
     const careerPL = new Map([['a2', 5]]);
     expect(rankAI(states, 'careerPL', careerPL).map((s) => s.aiId)).toEqual(['a2', 'a1']);
+  });
+});
+
+// ===== Meeting / 외부 AI 분석 연결 =====
+
+describe('Meeting 외부 AI 분석 연결', () => {
+  it('현재 세션의 최신 Daily Analysis만 선택하고 다른 세션 결과는 제외한다', () => {
+    const reviews = [
+      { id: 'old', sessionId: 's1', kind: 'DAILY_ANALYSIS' as const, createdAt: 10, rawText: '이전 분석', parsedSummary: '' },
+      { id: 'new-other', sessionId: 's2', kind: 'DAILY_ANALYSIS' as const, createdAt: 30, rawText: '다른 세션 분석', parsedSummary: '' },
+      { id: 'new', sessionId: 's1', kind: 'DAILY_ANALYSIS' as const, createdAt: 20, rawText: '현재 세션 최신 분석', parsedSummary: '' },
+      { id: 'scenario', sessionId: 's1', kind: 'SCENARIO' as const, createdAt: 40, rawText: '시나리오', parsedSummary: '' },
+    ];
+    expect(getLatestDailyAnalysis(reviews, 's1')).toBe('현재 세션 최신 분석');
+    expect(getLatestDailyAnalysis(reviews, 's2')).toBe('다른 세션 분석');
+  });
+
+  it('외부 분석이 있으면 Meeting 발화에 분석 메모가 포함되고, 없으면 기존 발화를 유지한다', () => {
+    const profile = mkProfile('a1', { commonExpressions: ['체크'], dialogExamples: ['기본 발화'] });
+    const dyn = computeDynamicState([]);
+    const withAnalysis = generateSpeech(profile, dyn, { externalAnalysis: '현재 세션에서 손실 구간이 확대되고 있어 변동성을 주의해야 한다.' }, () => 0);
+    const withoutAnalysis = generateSpeech(profile, dyn, {}, () => 0);
+    expect(withAnalysis).toContain('외부 분석 메모');
+    expect(withAnalysis).toContain('손실 구간');
+    expect(withoutAnalysis).not.toContain('외부 분석 메모');
   });
 });
 
