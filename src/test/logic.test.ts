@@ -6,7 +6,7 @@ import {
 } from '../utils/statistics';
 import { validateBackup, validateRoundInput, validateSessionInput } from '../utils/validation';
 import { generateSpeech, playForRound } from '../services/aiService';
-import { buildParticipantRecommendationPrompt, buildSessionDataSection, buildShortsReviewData, createDefaultShortsTimeline, getLatestDailyAnalysis, getNextEnabledShortsShotIndex, getPreviousEndedSession, isReviewStale, normalizeShortsTimeline, parseParticipantRecommendations, parseShortsContent, selectRandomMeetingParticipants } from '../services/promptService';
+import { buildDailyAnalysisPrompt, buildParticipantRecommendationPrompt, buildSessionDataSection, buildShortsReviewData, createDefaultShortsTimeline, getLatestDailyAnalysis, getNextEnabledShortsShotIndex, getPreviousEndedSession, isReviewStale, normalizeShortsTimeline, parseParticipantRecommendations, parseShortsContent, selectRandomMeetingParticipants } from '../services/promptService';
 import { isLatestProjectLoad, normalizeMeetingParticipants, resolveMeetingParticipants } from '../app/store';
 import { getGame } from '../data/games';
 import type { AIProfile, AIRoundRecord, DailySession, Round } from '../types';
@@ -897,6 +897,31 @@ describe('Meeting 참여자 설정', () => {
 });
 
 // ===== Shorts / 외부 AI 분석 연결 =====
+
+describe('Daily Analysis 스토리 타입 계약', () => {
+  it('스토리 타입 후보와 storyReason 요구가 프롬프트에 포함되고 기존 Shorts 계약도 유지한다', () => {
+    const bundle = {
+      project: { id: 'p1', name: 'Test', startDate: '2026-01-01', startCapital: 1000, currency: 'USD', memo: '', status: 'ACTIVE' as const, createdAt: 1, updatedAt: 1 },
+      session: mkSession(),
+      game: dt,
+      rounds: [],
+      profiles: [],
+      aiRecords: [],
+      aiStates: [],
+      currency: 'USD',
+      decimals: 2,
+    };
+    const prompt = buildDailyAnalysisPrompt(bundle, '분석 템플릿\\n{{DATA}}');
+    for (const type of ['TURNAROUND', 'AI_CLASH', 'STREAK', 'AI_ELIMINATION', 'BIG_SWING', 'STEADY', 'MIXED']) {
+      expect(prompt).toContain(type);
+    }
+    expect(prompt).toContain('storyReason');
+    expect(prompt).toContain('"shorts": {');
+    expect(prompt).toContain('"title"');
+    expect(prompt).toContain('"description"');
+    expect(prompt).toContain('"hashtags"');
+  });
+});
 
 describe('Shorts review data', () => {
   it('가장 큰 실제 손익 변동 라운드를 핵심 라운드로 선택한다', () => {
