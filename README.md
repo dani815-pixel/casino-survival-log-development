@@ -261,7 +261,34 @@ src/
 - data/defaults.ts: 기본 설정/프롬프트
 - test/logic.test.ts: 핵심 로직 테스트
 
-## 11. 개발 명령
+## 11. GitHub Pages 배포
+
+배포는 Netlify가 아니라 **GitHub Actions + GitHub Pages**를 사용합니다.
+
+```text
+main push
+  ↓
+GitHub Actions
+  ↓
+npm ci
+  ↓
+npm test
+  ↓
+npm run build
+  ↓
+dist 업로드
+  ↓
+GitHub Pages 배포
+```
+
+Workflow:
+`.github/workflows/static.yml`
+
+GitHub 저장소의 **Settings → Pages → Build and deployment → Source**에서 **GitHub Actions**를 선택해야 합니다.
+
+Actions의 Test 또는 Build가 실패하면 배포 단계까지 진행하지 않습니다.
+
+## 12. 개발 명령
 
 npm install
 npm run dev
@@ -270,7 +297,7 @@ npm run build
 
 현재 문서 작성 시점에는 이 환경에서 실제 npm test와 npm run build를 실행해 성공 여부를 확인하지 않았습니다.
 
-## 12. 개발 원칙
+## 13. 개발 원칙
 
 1. 수정 전에 수정 기획서를 먼저 작성합니다.
 2. 관련 현재 파일을 다시 조회합니다.
@@ -286,7 +313,7 @@ npm run build
 12. Shorts 콘텐츠를 배열 index에 고정하지 않습니다.
 13. 문제 없는 기능까지 대규모 리팩터링하지 않습니다.
 
-## 13. 다음 작업
+## 14. 다음 작업
 
 최우선:
 1. 실제 환경에서 npm test 실행
