@@ -19,6 +19,10 @@ import { uid } from '../utils/id';
 
 export type Tab = 'home' | 'game' | 'ai' | 'meeting' | 'charts' | 'review' | 'shorts' | 'settings';
 
+export function isLatestProjectLoad(requestId: number, currentRequestId: number): boolean {
+  return requestId === currentRequestId;
+}
+
 export function normalizeMeetingParticipants(participants: string[], activeIds: string[]): string[] {
   const current = [...new Set(participants)].filter((id) => activeIds.includes(id)).slice(0, 4);
   return current.length > 0 ? current : activeIds.slice(0, 4);
@@ -162,12 +166,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
       const profs = (await db.byIndex<AIProfile>('aiProfiles', 'projectId', pid)).sort(
         (a, b) => a.createdAt - b.createdAt,
       );
-      if (requestId !== projectLoadRequestRef.current) return;
+      if (!isLatestProjectLoad(requestId, projectLoadRequestRef.current)) return;
       setSessions(ss);
       setAiProfiles(profs);
       const cur = [...ss].reverse().find((s) => s.status !== 'ENDED') ?? ss[ss.length - 1] ?? null;
       setSession(cur);
-      if (cur) await reloadChildren(cur, () => requestId === projectLoadRequestRef.current);
+      if (cur) await reloadChildren(cur, () => isLatestProjectLoad(requestId, projectLoadRequestRef.current));
       if (requestId !== projectLoadRequestRef.current) return;
       if (cur) {
         // reloadChildren may have completed after another project load started.
