@@ -6,7 +6,7 @@ import {
 } from '../utils/statistics';
 import { validateBackup, validateRoundInput, validateSessionInput } from '../utils/validation';
 import { generateSpeech, playForRound } from '../services/aiService';
-import { buildParticipantRecommendationPrompt, getLatestDailyAnalysis, getPreviousEndedSession, parseParticipantRecommendations, selectRandomMeetingParticipants } from '../services/promptService';
+import { buildParticipantRecommendationPrompt, buildSessionDataSection, getLatestDailyAnalysis, getPreviousEndedSession, parseParticipantRecommendations, selectRandomMeetingParticipants } from '../services/promptService';
 import { normalizeMeetingParticipants, resolveMeetingParticipants } from '../app/store';
 import { getGame } from '../data/games';
 import type { AIProfile, AIRoundRecord, DailySession, Round } from '../types';
@@ -433,6 +433,24 @@ describe('AI 랭킹 기준 독립성', () => {
 // ===== Meeting / 외부 AI 분석 연결 =====
 
 describe('Meeting 외부 AI 분석 연결', () => {
+  it('legacy Daily Session에 meetingParticipants가 없어도 분석 데이터 생성이 중단되지 않는다', () => {
+    const legacySession = mkSession() as DailySession & { meetingParticipants?: string[] };
+    delete legacySession.meetingParticipants;
+    const prompt = buildSessionDataSection({
+      project: { id: 'p1', name: 'Test', startDate: '2026-01-01', startCapital: 100, currency: 'USD', memo: '', status: 'ACTIVE', createdAt: 1, updatedAt: 1 },
+      session: legacySession,
+      game: dt,
+      rounds: [],
+      profiles: [],
+      aiRecords: [],
+      aiStates: [],
+      currency: 'USD',
+      decimals: 2,
+    });
+    expect(prompt).toContain('회의 참여 AI: 미정/기록 없음');
+  });
+
+
   it('현재 세션의 최신 Daily Analysis만 선택하고 다른 세션 결과는 제외한다', () => {
     const reviews = [
       { id: 'old', sessionId: 's1', kind: 'DAILY_ANALYSIS' as const, createdAt: 10, rawText: '이전 분석', parsedSummary: '' },
