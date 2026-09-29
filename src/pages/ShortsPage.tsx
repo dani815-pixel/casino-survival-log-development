@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { useApp } from '../app/store';
 import { Btn, Empty } from '../components/ui';
-import { extractHighlights } from '../services/promptService';
+import { createDefaultShortsTimeline, extractHighlights } from '../services/promptService';
 import { rankAI } from '../utils/statistics';
 import { aiColor } from '../components/charts';
 import { optionLabel } from '../data/games';
@@ -21,6 +21,7 @@ export default function ShortsPage() {
   const app = useApp();
   const { project, session, game, rounds, aiProfiles, aiStates, reviews, settings, userStats } = app;
   const [cur, setCur] = useState(0);
+  const timeline = useMemo(() => createDefaultShortsTimeline(30), []);
 
   const analysis = useMemo(
     () => reviews
@@ -192,15 +193,17 @@ export default function ShortsPage() {
     </div>,
   ];
 
+  const shots = screens.map((node, index) => ({ ...timeline.shots[index]!, node }));
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h1 className="text-lg font-black text-slate-100">Shorts Studio</h1>
-        <span className="text-[11px] font-bold text-slate-500">{cur + 1} / 6 · 세로 9:16 캡처용</span>
+        <span className="text-[11px] font-bold text-slate-500">{cur + 1} / {shots.length} · {timeline.totalDuration}초 · 세로 9:16 캡처용</span>
       </div>
 
       <div className="shorts-stage">
-        {screens.map((node, i) => (
+        {shots.map(({ node }, i) => (
           <div
             key={i}
             className="slide"
@@ -216,14 +219,14 @@ export default function ShortsPage() {
       </div>
 
       <div className="flex items-center justify-center gap-1.5">
-        {screens.map((_, i) => (
+        {shots.map((_, i) => (
           <button key={i} onClick={() => setCur(i)} className={`h-1.5 rounded-full transition-all ${i === cur ? 'w-6 bg-[#f0c04a]' : 'w-1.5 bg-white/15'}`} aria-label={`화면 ${i + 1}`} />
         ))}
       </div>
 
       <div className="grid grid-cols-3 gap-2">
         <Btn variant="ghost" disabled={cur === 0} onClick={() => setCur((c) => Math.max(0, c - 1))}>이전</Btn>
-        <Btn variant="primary" disabled={cur === 5} onClick={() => setCur((c) => Math.min(5, c + 1))}>다음</Btn>
+        <Btn variant="primary" disabled={cur === shots.length - 1} onClick={() => setCur((c) => Math.min(shots.length - 1, c + 1))}>다음</Btn>
         <Btn
           variant="gold"
           onClick={() => { app.notify('오늘의 Shorts 완료. 각 화면을 캡처해서 사용하세요.'); setCur(0); }}
