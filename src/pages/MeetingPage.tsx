@@ -60,7 +60,7 @@ export default function MeetingPage() {
 
   const latestDailyAnalysis = useMemo(
     () => session ? getLatestDailyAnalysis(reviews, session.id) : '',
-    [reviews],
+    [reviews, session?.id],
   );
   const rankedByPL = useMemo(() => rankAI(aiStates, 'pl'), [aiStates]);
   const lastRound = rounds.length ? rounds.reduce((m, r) => (r.roundNumber > m.roundNumber ? r : m), rounds[0]!) : null;
