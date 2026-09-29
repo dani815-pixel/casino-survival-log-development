@@ -102,7 +102,7 @@ export function buildSessionEndSummary(
     totalRounds: stats.totalRounds,
     predictionCount: stats.predictionCount,
     actualBetCount: stats.actualBetCount,
-    actualProfitLoss: round2(endBalance - session.startBalance),
+    actualProfitLoss: stats.actualProfitLoss,
     endBalanceMismatch: enteredEndBalance != null && round2(enteredEndBalance) !== calculatedEndBalance,
   };
 }
