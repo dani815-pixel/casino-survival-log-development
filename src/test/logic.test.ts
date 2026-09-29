@@ -539,6 +539,29 @@ describe('Meeting 참여자 선정', () => {
     expect(getPreviousEndedSession([current], current.id)).toBeNull();
   });
 
+  it('이전 세션은 현재 프로젝트의 종료 세션만 선택한다', () => {
+    const sameProject = mkSession({ id: 'same-project', projectId: 'p1', status: 'ENDED', createdAt: 20, meetingParticipants: ['a1'] });
+    const otherProject = mkSession({ id: 'other-project', projectId: 'p2', status: 'ENDED', createdAt: 30, meetingParticipants: ['a9'] });
+    const current = mkSession({ id: 'current', projectId: 'p1', status: 'PLAYING', createdAt: 40 });
+    expect(getPreviousEndedSession([sameProject, otherProject, current], current.id, current.projectId)?.id).toBe('same-project');
+  });
+
+  it('Daily Analysis용 세션 데이터에 확정된 회의 참여 AI가 포함된다', () => {
+    const session = mkSession({ meetingParticipants: ['a1', 'a2'] });
+    const bundle = {
+      project: { id: 'p1', name: 'Test', startDate: '2026-01-01', startCapital: 1000, currency: 'USD', memo: '', status: 'ACTIVE' as const, createdAt: 1, updatedAt: 1 },
+      session,
+      game: dt,
+      rounds: [],
+      profiles: [mkProfile('a1'), mkProfile('a2')],
+      aiRecords: [],
+      aiStates: computeAllAIStates(['a1', 'a2'], [], 100),
+      currency: 'USD',
+      decimals: 2,
+    };
+    expect(buildSessionDataSection(bundle)).toContain('회의 참여 AI: a1, a2');
+  });
+
   it('참가자 추천 프롬프트는 후보 AI와 JSON 출력 규칙을 포함한다', () => {
     const bundle = {
       project: { id: 'p1', name: 'Test', startDate: '2026-01-01', startCapital: 1000, currency: 'USD', memo: '', status: 'ACTIVE' as const, createdAt: 1, updatedAt: 1 },
