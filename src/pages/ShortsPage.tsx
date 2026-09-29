@@ -1,12 +1,12 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useApp } from '../app/store';
-import { Btn, Empty } from '../components/ui';
+import { Btn, Card, Empty, Field, NumInput, TextArea, TextInput } from '../components/ui';
 import { createDefaultShortsTimeline, extractHighlights } from '../services/promptService';
 import { rankAI } from '../utils/statistics';
 import { aiColor } from '../components/charts';
 import { optionLabel } from '../data/games';
 import { fmtSigned } from '../utils/format';
-import { Clapperboard, Lock, Skull } from 'lucide-react';
+import { Clapperboard, Copy, Lock, MoveDown, MoveUp, Skull } from 'lucide-react';
 
 const SLIDE_BG = [
   'linear-gradient(160deg,#1a2a4a 0%,#0b0f17 70%)',
@@ -21,7 +21,11 @@ export default function ShortsPage() {
   const app = useApp();
   const { project, session, game, rounds, aiProfiles, aiStates, reviews, settings, userStats } = app;
   const [cur, setCur] = useState(0);
-  const timeline = useMemo(() => createDefaultShortsTimeline(30), []);
+  const [timeline, setTimeline] = useState(() => createDefaultShortsTimeline(30));
+  const [title, setTitle] = useState('');
+  const [description, setDescription] = useState('');
+  const [hashtags, setHashtags] = useState('');
+  const [notice, setNotice] = useState('');
 
   const analysis = useMemo(
     () => reviews
@@ -34,6 +38,46 @@ export default function ShortsPage() {
     () => (analysis ? (analysis.parsedSummary || analysis.rawText).split('\n').filter(Boolean).slice(0, 6) : []),
     [analysis],
   );
+  useEffect(() => {
+    setTitle(analysis?.shorts?.title ?? '');
+    setDescription(analysis?.shorts?.description ?? '');
+    setHashtags(analysis?.shorts?.hashtags?.join(' ') ?? '');
+  }, [analysis?.id]);
+
+  const updateShot = (index: number, patch: Partial<(typeof timeline.shots)[number]>) => {
+    setTimeline((prev) => {
+      const shots = prev.shots.map((shot, i) => i === index ? { ...shot, ...patch } : shot);
+      const totalDuration = Math.round(shots.filter((s) => s.enabled).reduce((sum, s) => sum + s.duration, 0) * 10) / 10;
+      return { shots, totalDuration };
+    });
+  };
+
+  const moveShot = (index: number, direction: -1 | 1) => {
+    setTimeline((prev) => {
+      const target = index + direction;
+      if (target < 0 || target >= prev.shots.length) return prev;
+      const shots = [...prev.shots];
+      [shots[index], shots[target]] = [shots[target]!, shots[index]!];
+      return { ...prev, shots: shots.map((shot, i) => ({ ...shot, order: i })) };
+    });
+  };
+
+  const equalizeDurations = () => {
+    setTimeline((prev) => {
+      const enabled = prev.shots.filter((s) => s.enabled);
+      if (!enabled.length) return { ...prev, totalDuration: 0 };
+      const base = Math.floor((prev.totalDuration / enabled.length) * 10) / 10;
+      const remainder = Math.round((prev.totalDuration - base * (enabled.length - 1)) * 10) / 10;
+      let n = 0;
+      const shots = prev.shots.map((shot) => shot.enabled ? { ...shot, duration: n++ === enabled.length - 1 ? remainder : base } : shot);
+      return { shots, totalDuration: prev.totalDuration };
+    });
+  };
+
+  const copyText = async (label: string, value: string) => {
+    try { await navigator.clipboard.writeText(value); setNotice(label + ' 복사 완료'); }
+    catch { setNotice(label + ' 복사에 실패했습니다'); }
+  };
 
   if (!project || !session || !game || !userStats) {
     return <Empty icon={<Clapperboard size={28} />} title="세션이 없습니다" desc="게임을 시작하고 기록을 쌓은 뒤 Shorts를 만드세요." action={<Btn variant="gold" onClick={() => app.setTab('game')}>게임 시작</Btn>} />;
@@ -199,8 +243,40 @@ export default function ShortsPage() {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h1 className="text-lg font-black text-slate-100">Shorts Studio</h1>
-        <span className="text-[11px] font-bold text-slate-500">{cur + 1} / {shots.length} · {timeline.totalDuration}초 · 세로 9:16 캡처용</span>
+        <span className="text-[11px] font-bold text-slate-500">{cur + 1} / {shots.length} · {timeline.totalDuration}초 · 세로 9:16</span>
       </div>
+
+      <Card title="쇼츠 화면 구성" right={<span className="text-[11px] font-bold text-[#ffd97a]">{timeline.totalDuration}초</span>}>
+        <div className="space-y-2">
+          {timeline.shots.map((shot, i) => (
+            <div key={shot.id} className="rounded-xl bg-white/[0.04] p-2.5 ring-1 ring-white/[0.06]">
+              <div className="flex items-center gap-2">
+                <button type="button" onClick={() => updateShot(i, { enabled: !shot.enabled })} className={'h-9 w-11 rounded-lg text-[11px] font-black ' + (shot.enabled ? 'bg-emerald-500/15 text-emerald-300' : 'bg-white/5 text-slate-500')}>{shot.enabled ? 'ON' : 'OFF'}</button>
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-xs font-bold text-white">{shot.title}</p>
+                  <p className="text-[10px] text-slate-500">{shot.type}</p>
+                </div>
+                <div className="w-[82px]"><NumInput value={shot.duration} min={0.5} step={0.5} onChange={(v) => updateShot(i, { duration: v ?? 0.5 })} aria-label={shot.title + ' 시간'} /></div>
+                <button type="button" disabled={i === 0} onClick={() => moveShot(i, -1)} className="rounded-lg p-2 text-slate-400 disabled:opacity-20" aria-label="위로"><MoveUp size={15} /></button>
+                <button type="button" disabled={i === timeline.shots.length - 1} onClick={() => moveShot(i, 1)} className="rounded-lg p-2 text-slate-400 disabled:opacity-20" aria-label="아래로"><MoveDown size={15} /></button>
+              </div>
+            </div>
+          ))}
+        </div>
+        <div className="mt-3 flex gap-2"><Btn variant="subtle" className="flex-1" onClick={equalizeDurations}>균등 배분</Btn><Btn variant="ghost" className="flex-1" onClick={() => setTimeline(createDefaultShortsTimeline(30))}>30초 초기화</Btn></div>
+      </Card>
+
+      <Card title="업로드 정보">
+        <div className="space-y-3">
+          <Field label="쇼츠 제목"><TextInput value={title} onChange={(e) => setTitle(e.target.value)} placeholder="AI가 생성한 쇼츠 제목" /></Field>
+          <Btn variant="ghost" className="w-full" onClick={() => copyText('제목', title)} disabled={!title}><Copy size={15} /> 제목 복사</Btn>
+          <Field label="설명"><TextArea value={description} onChange={(e) => setDescription(e.target.value)} placeholder="AI가 생성한 쇼츠 설명" /></Field>
+          <Btn variant="ghost" className="w-full" onClick={() => copyText('설명', description)} disabled={!description}><Copy size={15} /> 설명 복사</Btn>
+          <Field label="해시태그" hint="AI 추천 해시태그를 자유롭게 수정할 수 있습니다."><TextInput value={hashtags} onChange={(e) => setHashtags(e.target.value)} placeholder="#카지노 #카지노생존일지" /></Field>
+          <Btn variant="ghost" className="w-full" onClick={() => copyText('해시태그', hashtags)} disabled={!hashtags}><Copy size={15} /> 해시태그 복사</Btn>
+          {notice && <p className="text-center text-[11px] font-bold text-emerald-300">{notice}</p>}
+        </div>
+      </Card>
 
       <div className="shorts-stage">
         {shots.map(({ node }, i) => (
