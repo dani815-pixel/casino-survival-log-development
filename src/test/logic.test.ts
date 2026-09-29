@@ -98,6 +98,17 @@ describe('사용자 통계 (예측/실제베팅 분리)', () => {
     expect(s.actualBetCount).toBe(1);
     expect(s.actualProfitLoss).toBe(-10);
   });
+
+  it('수동 종료잔액이 달라도 todayPL/dailyReturn은 실제 베팅 P/L 기준이다', () => {
+    const mismatch = computeUserStats(mkSession({ endBalance: 130 }), [
+      mkRound({ roundNumber: 1, actualResult: 'dragon', bettingAmount: 20, actualProfitLoss: 20 }),
+    ]);
+    expect(mismatch.actualProfitLoss).toBe(20);
+    expect(mismatch.currentBalance).toBe(120);
+    expect(mismatch.endBalance).toBe(130);
+    expect(mismatch.todayPL).toBe(20);
+    expect(mismatch.dailyReturn).toBe(20);
+  });
 });
 
 // ===== 세션 종료 잔액 계산 (Daily Start + 실제 베팅 P/L) =====
