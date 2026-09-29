@@ -4,7 +4,7 @@ import { Btn, Card, Empty, SectionTitle, Stat } from '../components/ui';
 import { BarChart, LineChart, aiColor, type Series } from '../components/charts';
 import { getProjectBundle, type ProjectBundle } from '../services/queries';
 import {
-  balanceSeries, computeAIState, computeCareer, computeUserStats, rankSeriesPerRound, round2,
+  balanceSeries, computeAIState, computeCareer, computeProjectCumulativePL, computeUserStats, rankSeriesPerRound,
 } from '../utils/statistics';
 import { ChartLine } from 'lucide-react';
 
@@ -33,12 +33,16 @@ export default function ChartsPage() {
     if (s.id === session?.id) return { label: `${s.date.slice(5)}·진행`, value: computeUserStats(s, rounds).actualProfitLoss };
     return { label: s.date.slice(5), value: 0 };
   });
-  let acc = 0;
-  const cumulativePts = (bundle?.sessions ?? []).map((s, i) => {
-    const pl = s.status === 'ENDED' ? s.actualProfitLoss : s.id === session?.id ? computeUserStats(s, rounds).actualProfitLoss : 0;
-    acc = round2(acc + pl);
-    return { x: i + 1, y: acc };
-  });
+  const currentUserPL = session ? computeUserStats(session, rounds).actualProfitLoss : null;
+  const projectSessions = bundle?.sessions ?? [];
+  const cumulativePts = projectSessions.map((_, i) => ({
+    x: i + 1,
+    y: computeProjectCumulativePL(
+      projectSessions.slice(0, i + 1),
+      session?.id ?? null,
+      currentUserPL,
+    ),
+  }));
 
   // ===== AI 차트 (현재 세션) =====
   const activeIds = aiProfiles.filter((p) => p.active).map((p) => p.id);
