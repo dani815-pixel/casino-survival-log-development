@@ -358,7 +358,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       run(async () => {
         const target = latestRound();
         if (!session || !target) throw new Error('삭제할 라운드가 없습니다.');
-        await svc.deleteRound(target);
+        await svc.deleteRound(session, target);
         await reloadChildren(session);
         notify(`R${target.roundNumber} 삭제됨 (통계 재계산 완료)`);
       }),
