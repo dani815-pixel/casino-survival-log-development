@@ -1,4 +1,4 @@
-import type { AIRoundRecord, Round } from '../types';
+import type { AIRoundRecord, DailySession, Round } from '../types';
 
 export const round2 = (n: number) => Math.round(n * 100) / 100;
 const sum = (xs: number[]) => xs.reduce((a, b) => a + b, 0);
@@ -72,6 +72,25 @@ export function computeSessionSummary(rounds: Round[]): SessionSummary {
     actualBetCount: s.actualBetCount,
     actualProfitLoss: s.actualProfitLoss,
   };
+}
+
+// ===== 프로젝트 누적 사용자 P/L =====
+
+/**
+ * 프로젝트 누적 P/L은 프로젝트 시작 자금이나 AI 가상 자산이 아니라
+ * 각 Daily Session의 실제 사용자 베팅 P/L만 합산한다.
+ * 진행 중인 현재 세션은 저장된 요약값 대신 현재 계산값을 사용한다.
+ */
+export function computeProjectCumulativePL(
+  sessions: DailySession[],
+  activeSessionId: string | null,
+  activeSessionPL: number | null,
+): number {
+  return round2(sessions.reduce((total, session) => {
+    if (session.status === 'ENDED') return total + session.actualProfitLoss;
+    if (session.id === activeSessionId && activeSessionPL != null) return total + activeSessionPL;
+    return total;
+  }, 0));
 }
 
 // ===== 세션 종료 요약 (UI와 분리된 순수 함수) =====
