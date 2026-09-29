@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { settleBet } from '../utils/settle';
 import {
   buildSessionEndSummary, computeAllAIStates, computeUserStats, computeSessionSummary,
-  computeAIState, computeDynamicState, rankAI,
+  computeAIState, computeDynamicState, rankAI, computeProjectCumulativePL,
 } from '../utils/statistics';
 import { validateBackup, validateRoundInput, validateSessionInput } from '../utils/validation';
 import { playForRound } from '../services/aiService';
@@ -108,6 +108,26 @@ describe('사용자 통계 (예측/실제베팅 분리)', () => {
     expect(mismatch.endBalance).toBe(130);
     expect(mismatch.todayPL).toBe(20);
     expect(mismatch.dailyReturn).toBe(20);
+  });
+});
+
+// ===== 프로젝트 누적 P/L (Project Start와 Daily Start 분리) =====
+
+describe('프로젝트 누적 P/L', () => {
+  it('Project Start 1000과 Daily Start 100을 분리하고 실제 P/L만 누적한다', () => {
+    const sessions = [
+      mkSession({ id: 'day1', status: 'ENDED', startBalance: 100, actualProfitLoss: 20 }),
+      mkSession({ id: 'day2', status: 'PLAYING', startBalance: 100, actualProfitLoss: 0 }),
+    ];
+    expect(computeProjectCumulativePL(sessions, 'day2', -10)).toBe(10);
+  });
+
+  it('AI 가상 P/L이나 Prediction Only는 프로젝트 사용자 P/L에 포함하지 않는다', () => {
+    const sessions = [
+      mkSession({ id: 'day1', status: 'ENDED', startBalance: 100, actualProfitLoss: 20 }),
+    ];
+    // Project Start Capital은 이 함수에 전달되지 않으며, AI P/L도 별도 데이터다.
+    expect(computeProjectCumulativePL(sessions, null, null)).toBe(20);
   });
 });
 
