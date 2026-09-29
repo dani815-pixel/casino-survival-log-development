@@ -127,7 +127,7 @@ export function playForRound(ctx: PlayCtx): AIRoundRecord[] {
 export function generateSpeech(
   p: AIProfile,
   dyn: AIDynamicState,
-  ctx: { resultLabel?: string; lastPL?: number | null; rank?: number },
+  ctx: { resultLabel?: string; lastPL?: number | null; rank?: number; externalAnalysis?: string },
   rng: () => number = Math.random,
 ): string {
   const opener = pickOne(p.commonExpressions.length ? p.commonExpressions : ['……'], rng);
@@ -144,6 +144,10 @@ export function generateSpeech(
     body = '표본을 더 모으는 중이야.';
   }
   const extras: string[] = [];
+  if (ctx.externalAnalysis?.trim()) {
+    const insight = ctx.externalAnalysis.trim().replace(/\s+/g, ' ').slice(0, 180);
+    extras.push(`외부 분석 메모: ${insight}`);
+  }
   if (ctx.rank === 1) extras.push('현재 1위지만 방심은 없다.');
   if (dyn.streak >= 3) extras.push(`${dyn.streak}연속 적중 중.`);
   if (dyn.streak <= -3) extras.push(`${-dyn.streak}연패. 전략을 점검해야겠어.`);
