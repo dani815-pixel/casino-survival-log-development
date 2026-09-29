@@ -114,6 +114,30 @@ describe('종료 세션 라운드 변경 규칙', () => {
   });
 });
 
+describe('AI 프로젝트 격리 검증', () => {
+  it('현재 프로젝트가 아닌 AI를 회의 참가자로 직접 저장하지 않도록 활성 AI 목록으로 제한한다', () => {
+    expect(normalizeMeetingParticipants(['foreign-ai', 'local-ai'], ['local-ai'])).toEqual(['local-ai']);
+  });
+
+  it('백업에서 다른 프로젝트의 AI가 세션의 AI 기록에 연결되면 거부한다', () => {
+    const backup = {
+      schemaVersion: 1,
+      data: {
+        projects: [{ id: 'p1' }, { id: 'p2' }],
+        sessions: [{ id: 's1', projectId: 'p1', startBalance: 100, endBalance: null, calculatedEndBalance: null, actualProfitLoss: 0 }],
+        tables: [], shoes: [],
+        rounds: [{ id: 'r1', sessionId: 's1', shoeId: 'sh1', roundNumber: 1, bettingAmount: null, actualProfitLoss: null }],
+        aiProfiles: [{ id: 'a2', projectId: 'p2', aggression: 50, conservatism: 50, trendFollowing: 50, reversalPreference: 50, volatilityTolerance: 50, passPreference: 50 }],
+        aiRecords: [{ id: 'ar1', sessionId: 's1', roundId: 'r1', aiId: 'a2' }],
+        events: [], reviews: [], settings: [],
+      },
+    };
+    const result = validateBackup(backup);
+    expect(result.ok).toBe(false);
+    expect(result.errors.some((e) => e.includes('서로 다른 프로젝트'))).toBe(true);
+  });
+});
+
 describe('프로젝트 전환 로딩 격리', () => {
   it('새 프로젝트 로딩이 시작되면 이전 프로젝트의 늦은 응답은 무시한다', () => {
     expect(isLatestProjectLoad(1, 2)).toBe(false);
