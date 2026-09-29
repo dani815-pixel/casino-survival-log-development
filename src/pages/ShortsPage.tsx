@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useApp } from '../app/store';
 import { Btn, Card, Empty, Field, NumInput, TextArea, TextInput } from '../components/ui';
-import { buildShortsReviewData, createDefaultShortsTimeline, extractHighlights, getNextEnabledShortsShotIndex } from '../services/promptService';
+import { DEFAULT_SHORTS_SHOTS, buildShortsReviewData, createDefaultShortsTimeline, extractHighlights, getNextEnabledShortsShotIndex } from '../services/promptService';
 import { rankAI } from '../utils/statistics';
 import { aiColor } from '../components/charts';
 import { optionLabel } from '../data/games';
@@ -331,7 +331,7 @@ export default function ShortsPage() {
         <p className="mt-1 text-[10px] font-semibold text-white/45">{rounds.length}R · {ended ? '세션 종료' : '세션 진행 중'}</p>
       </div>
       {reviewData.keyRound ? (
-        <div className={`mt-3 rounded-2xl border border-[#ffd97a]/20 ${shortsReveal2}` bg-[#ffd97a]/5 p-3.5">
+        <div className={`mt-3 rounded-2xl border border-[#ffd97a]/20 bg-[#ffd97a]/5 p-3.5 ${shortsReveal2}`}>
           <p className="text-[9px] font-black tracking-[0.18em] text-[#ffd97a]">KEY MOMENT · R{reviewData.keyRound.roundNumber}</p>
           <p className="mt-2 text-xl font-black text-white">{optionLabel(game, reviewData.keyRound.actualResult)}</p>
           {reviewData.keyRound.actualProfitLoss != null && (
@@ -383,7 +383,10 @@ export default function ShortsPage() {
     </div>,
   ];
 
-  const shots = screens.map((node, index) => ({ ...timeline.shots[index]!, node }));
+  const shots = timeline.shots.map((shot) => {
+    const screenIndex = DEFAULT_SHORTS_SHOTS.findIndex((item) => item.type === shot.type);
+    return { ...shot, node: screens[screenIndex] ?? screens[0] };
+  });
 
   return (
     <div className="space-y-4">
