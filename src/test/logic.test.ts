@@ -6,7 +6,7 @@ import {
 } from '../utils/statistics';
 import { validateBackup, validateRoundInput, validateSessionInput } from '../utils/validation';
 import { generateSpeech, playForRound } from '../services/aiService';
-import { buildParticipantRecommendationPrompt, buildSessionDataSection, getLatestDailyAnalysis, getPreviousEndedSession, parseParticipantRecommendations, selectRandomMeetingParticipants } from '../services/promptService';
+import { buildParticipantRecommendationPrompt, buildSessionDataSection, getLatestDailyAnalysis, getPreviousEndedSession, isReviewStale, parseParticipantRecommendations, selectRandomMeetingParticipants } from '../services/promptService';
 import { normalizeMeetingParticipants, resolveMeetingParticipants } from '../app/store';
 import { getGame } from '../data/games';
 import type { AIProfile, AIRoundRecord, DailySession, Round } from '../types';
@@ -546,6 +546,25 @@ describe('Meeting 외부 AI 분석 연결', () => {
     ];
     expect(getLatestDailyAnalysis(reviews, 's1')).toBe('현재 세션 최신 분석');
     expect(getLatestDailyAnalysis(reviews, 's2')).toBe('다른 세션 분석');
+  });
+
+  it('Daily Analysis 이후 ROUND 이벤트가 발생하면 분석을 오래된 결과로 판정한다', () => {
+    const review = { id: 'rev1', sessionId: 's1', kind: 'DAILY_ANALYSIS' as const, createdAt: 100, rawText: '분석', parsedSummary: '' };
+    const events = [
+      { id: 'e1', sessionId: 's1', type: 'ROUND' as const, timestamp: 90, payload: { roundNumber: 1 } },
+      { id: 'e2', sessionId: 's1', type: 'ROUND' as const, timestamp: 110, payload: { action: 'UPDATE', roundNumber: 2 } },
+    ];
+    expect(isReviewStale(review, events, 's1')).toBe(true);
+    expect(isReviewStale(review, events, 's2')).toBe(false);
+  });
+
+  it('ROUND 이벤트가 없거나 분석 이후 변경이 없으면 Daily Analysis를 최신으로 유지한다', () => {
+    const review = { id: 'rev1', sessionId: 's1', kind: 'DAILY_ANALYSIS' as const, createdAt: 100, rawText: '분석', parsedSummary: '' };
+    const events = [
+      { id: 'e1', sessionId: 's1', type: 'ROUND' as const, timestamp: 100, payload: { roundNumber: 1 } },
+      { id: 'e2', sessionId: 's1', type: 'ROUND' as const, timestamp: 90, payload: { action: 'UPDATE', roundNumber: 2 } },
+    ];
+    expect(isReviewStale(review, events, 's1')).toBe(false);
   });
 
   it('외부 분석이 있으면 Meeting 발화에 분석 메모가 포함되고, 없으면 기존 발화를 유지한다', () => {
