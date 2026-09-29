@@ -1,5 +1,5 @@
 import type {
-  AIProfile, AIRoundRecord, DailySession, ExternalReview, GameDefinition, Project, Round,
+  AIProfile, AIRoundRecord, DailySession, ExternalReview, GameDefinition, Project, Round, ShortsContent, ShortsShot, ShortsShotType, ShortsTimeline,
 } from '../types';
 import { optionLabel } from '../data/games';
 import { computeUserStats, type DailyAIState } from '../utils/statistics';
@@ -130,10 +130,79 @@ export function selectRandomMeetingParticipants(
   return pool.slice(0, limit);
 }
 
-export function buildDailyAnalysisPrompt(b: PromptBundle, template: string): string {
-  return template.replace('{{DATA}}', buildSessionDataSection(b));
+export const DEFAULT_SHORTS_SHOTS: Array<Pick<ShortsShot, 'type' | 'title'>> = [
+  { type: 'TODAYS_GAME', title: '오늘의 게임' },
+  { type: 'TODAYS_RESULT', title: '오늘의 결과' },
+  { type: 'AI_RANKING', title: 'AI 랭킹' },
+  { type: 'AI_FLOW', title: 'AI 흐름' },
+  { type: 'DAILY_AI_REVIEW', title: '오늘의 AI 복기' },
+  { type: 'DAY_COMPLETE', title: '하루 마무리' },
+];
+
+export function createDefaultShortsTimeline(duration = 30): ShortsTimeline {
+  const safeDuration = Number.isFinite(duration) && duration > 0 ? duration : 30;
+  const count = DEFAULT_SHORTS_SHOTS.length;
+  const base = Math.floor((safeDuration / count) * 10) / 10;
+  const last = Math.round((safeDuration - base * (count - 1)) * 10) / 10;
+  const shots = DEFAULT_SHORTS_SHOTS.map((shot, index) => ({
+    id: `shot-${shot.type.toLowerCase()}`, type: shot.type, title: shot.title, order: index,
+    duration: index === count - 1 ? last : base, enabled: true,
+  }));
+  return { shots, totalDuration: safeDuration };
 }
 
+export function normalizeShortsTimeline(shots: ShortsShot[]): ShortsTimeline {
+  const normalized = shots.filter(Boolean).map((shot, index) => ({
+    ...shot, order: index,
+    duration: Number.isFinite(shot.duration) && shot.duration > 0 ? Math.round(shot.duration * 10) / 10 : 5,
+    enabled: shot.enabled !== false,
+  }));
+  const totalDuration = Math.round(normalized.filter((s) => s.enabled).reduce((sum, s) => sum + s.duration, 0) * 10) / 10;
+  return { shots: normalized, totalDuration };
+}
+
+function tryParseJSONObject(raw: string): Record<string, unknown> | null {
+  try {
+    const parsed = JSON.parse(raw) as unknown;
+    return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed as Record<string, unknown> : null;
+  } catch {
+    const start = raw.indexOf('{'); const end = raw.lastIndexOf('}');
+    if (start < 0 || end <= start) return null;
+    try {
+      const parsed = JSON.parse(raw.slice(start, end + 1)) as unknown;
+      return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed as Record<string, unknown> : null;
+    } catch { return null; }
+  }
+}
+
+export function parseShortsContent(raw: string): ShortsContent | undefined {
+  const root = tryParseJSONObject(raw); const value = root?.shorts;
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return undefined;
+  const shorts = value as Record<string, unknown>;
+  const title = typeof shorts.title === 'string' ? shorts.title.trim() : '';
+  const description = typeof shorts.description === 'string' ? shorts.description.trim() : '';
+  const hashtags = Array.isArray(shorts.hashtags)
+    ? shorts.hashtags.filter((x): x is string => typeof x === 'string').map((x) => x.trim()).filter(Boolean)
+    : typeof shorts.hashtags === 'string' ? shorts.hashtags.split(/\s+/).map((x) => x.trim()).filter(Boolean) : [];
+  if (!title && !description && hashtags.length === 0) return undefined;
+  return { title, description, hashtags: [...new Set(hashtags)] };
+}
+
+export function buildDailyAnalysisPrompt(b: PromptBundle, template: string): string {
+  const base = template.replace('{{DATA}}', buildSessionDataSection(b));
+  return base + [
+    '',
+    '[쇼츠 콘텐츠 생성]',
+    'Daily Analysis 결과에 아래 JSON을 추가하세요. 앱이 자동으로 읽어 쇼츠 제목/설명/해시태그에 사용합니다.',
+    '"shorts": {',
+    '  "title": "쇼츠 제목",',
+    '  "description": "쇼츠 설명",',
+    '  "hashtags": ["#카지노", "#카지노생존일지"]',
+    '}',
+    '제목과 설명은 실제 오늘 기록에 근거해 작성하고, 과장된 사실이나 확정적인 미래 예측은 만들지 마세요.',
+    '일반 분석을 함께 제공하더라도 위 shorts 객체는 JSON 안에 포함하세요.',
+  ].join('\n');
+}
 export function parseParticipantRecommendations(
   raw: string,
   activeIds: string[],
