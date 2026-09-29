@@ -447,6 +447,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
           : normalizeMeetingParticipants(ids ?? [], activeIds);
         if (selected.length === 0) throw new Error('참여 가능한 활성 AI가 없습니다.');
 
+        const updatedSession: DailySession = { ...session, meetingParticipants: selected, updatedAt: Date.now() };
+        await db.put('sessions', updatedSession);
+        setSession(updatedSession);
         await updateSettings({
           meeting: { ...settings.meeting, participants: selected },
         });
