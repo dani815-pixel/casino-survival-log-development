@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useApp } from '../app/store';
 import { Btn, Card, Empty, Field, NumInput, TextArea, TextInput } from '../components/ui';
-import { createDefaultShortsTimeline, extractHighlights } from '../services/promptService';
+import { createDefaultShortsTimeline, extractHighlights, getNextEnabledShortsShotIndex } from '../services/promptService';
 import { rankAI } from '../utils/statistics';
 import { aiColor } from '../components/charts';
 import { optionLabel } from '../data/games';
@@ -26,6 +26,8 @@ export default function ShortsPage() {
   const [description, setDescription] = useState('');
   const [hashtags, setHashtags] = useState('');
   const [notice, setNotice] = useState('');
+  const [previewing, setPreviewing] = useState(false);
+  const [previewRemaining, setPreviewRemaining] = useState(0);
 
   const analysis = useMemo(
     () => reviews
@@ -78,6 +80,61 @@ export default function ShortsPage() {
     try { await navigator.clipboard.writeText(value); setNotice(label + ' 복사 완료'); }
     catch { setNotice(label + ' 복사에 실패했습니다'); }
   };
+  useEffect(() => {
+    if (!previewing) {
+      setPreviewRemaining(0);
+      return;
+    }
+    const current = timeline.shots[cur];
+    if (!current || !current.enabled) {
+      const first = timeline.shots.findIndex((shot) => shot.enabled);
+      if (first < 0) {
+        setPreviewing(false);
+        return;
+      }
+      setCur(first);
+      return;
+    }
+
+    setPreviewRemaining(current.duration);
+    const startedAt = Date.now();
+    const tick = window.setInterval(() => {
+      const elapsed = (Date.now() - startedAt) / 1000;
+      setPreviewRemaining(Math.max(0, Math.round((current.duration - elapsed) * 10) / 10));
+    }, 100);
+
+    const timer = window.setTimeout(() => {
+      const next = getNextEnabledShortsShotIndex(timeline.shots, cur);
+      if (next == null) {
+        setPreviewing(false);
+        setPreviewRemaining(0);
+        setCur(timeline.shots.findIndex((shot) => shot.enabled));
+      } else {
+        setCur(next);
+      }
+    }, current.duration * 1000);
+
+    return () => {
+      window.clearInterval(tick);
+      window.clearTimeout(timer);
+    };
+  }, [previewing, cur, timeline.shots]);
+
+  const startPreview = () => {
+    const first = timeline.shots.findIndex((shot) => shot.enabled);
+    if (first < 0) {
+      setNotice('재생할 화면이 없습니다');
+      return;
+    }
+    setCur(first);
+    setPreviewing(true);
+  };
+
+  const stopPreview = () => {
+    setPreviewing(false);
+    setPreviewRemaining(0);
+  };
+
 
   if (!project || !session || !game || !userStats) {
     return <Empty icon={<Clapperboard size={28} />} title="세션이 없습니다" desc="게임을 시작하고 기록을 쌓은 뒤 Shorts를 만드세요." action={<Btn variant="gold" onClick={() => app.setTab('game')}>게임 시작</Btn>} />;
@@ -263,7 +320,7 @@ export default function ShortsPage() {
             </div>
           ))}
         </div>
-        <div className="mt-3 flex gap-2"><Btn variant="subtle" className="flex-1" onClick={equalizeDurations}>균등 배분</Btn><Btn variant="ghost" className="flex-1" onClick={() => setTimeline(createDefaultShortsTimeline(30))}>30초 초기화</Btn></div>
+        <div className="mt-3 flex gap-2"><Btn variant="subtle" className="flex-1" onClick={equalizeDurations} disabled={previewing}>균등 배분</Btn><Btn variant="ghost" className="flex-1" onClick={() => { stopPreview(); setTimeline(createDefaultShortsTimeline(30)); }}>30초 초기화</Btn></div>
       </Card>
 
       <Card title="업로드 정보">
@@ -277,6 +334,16 @@ export default function ShortsPage() {
           {notice && <p className="text-center text-[11px] font-bold text-emerald-300">{notice}</p>}
         </div>
       </Card>
+
+      <div className="flex items-center justify-between rounded-xl bg-white/[0.04] px-3 py-2">
+        <div>
+          <p className="text-xs font-black text-white">{previewing ? '▶ 자동 미리보기' : '미리보기 준비'}</p>
+          <p className="text-[10px] text-slate-500">{previewing ? `${previewRemaining.toFixed(1)}초 후 다음 화면` : '설정한 시간대로 실제 촬영 순서를 미리 확인합니다.'}</p>
+        </div>
+        <Btn variant={previewing ? 'ghost' : 'gold'} onClick={previewing ? stopPreview : startPreview}>
+          {previewing ? '미리보기 중지' : '▶ 미리보기'}
+        </Btn>
+      </div>
 
       <div className="shorts-stage">
         {shots.map(({ node }, i) => (
