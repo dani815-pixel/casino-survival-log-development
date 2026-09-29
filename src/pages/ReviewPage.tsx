@@ -56,7 +56,7 @@ export default function ReviewPage() {
   }, [project, session, game, rounds, aiProfiles, aiRecords, settings]);
 
   const previousSession = useMemo(
-    () => session ? getPreviousEndedSession(app.sessions, session.id) : null,
+    () => session ? getPreviousEndedSession(app.sessions, session.id, session.projectId) : null,
     [app.sessions, session?.id],
   );
   const previousReviews = useMemo(
