@@ -84,10 +84,21 @@ export function validateBackup(data: unknown): { ok: boolean; errors: string[] }
   if (errors.length) return { ok: false, errors };
 
   const arr = (k: string) => d[k] as Record<string, unknown>[];
-  for (const key of [...REQUIRED_ARRAYS, 'events', 'reviews', 'settings']) {
+  for (const key of REQUIRED_ARRAYS) {
+    for (const item of arr(key)) {
+      if (typeof item !== 'object' || item === null || typeof item.id !== 'string' || !item.id)
+        errors.push(`${key}에 id가 없는 데이터가 있습니다.`);
+    }
+  }
+  // events/reviews는 선택 배열이다. 없으면 정상 백업으로 간주하고,
+  // 존재하는 경우에만 배열 및 id/관계 무결성을 검증한다.
+  for (const key of ['events', 'reviews'] as const) {
     const list = d[key];
     if (list == null) continue;
-    if (!Array.isArray(list)) { errors.push(`${key} 데이터가 배열이 아닙니다.`); continue; }
+    if (!Array.isArray(list)) {
+      errors.push(`${key} 데이터가 배열이 아닙니다.`);
+      continue;
+    }
     for (const item of list as Record<string, unknown>[]) {
       if (typeof item !== 'object' || item === null || typeof item.id !== 'string' || !item.id)
         errors.push(`${key}에 id가 없는 데이터가 있습니다.`);
@@ -154,11 +165,17 @@ export function validateBackup(data: unknown): { ok: boolean; errors: string[] }
     if (round && round.sessionId !== r.sessionId) errors.push('AI 기록과 라운드의 sessionId가 일치하지 않습니다.');
     if (session && ai && ai.projectId !== session.projectId) errors.push('AI 기록의 AI와 세션이 서로 다른 프로젝트를 참조합니다.');
   }
-  for (const e of (d.events as Record<string, unknown>[])) {
-    if (!sessions.has(e.sessionId as string)) errors.push('sessionId가 존재하지 않는 이벤트가 있습니다.');
+  const events = d.events;
+  if (Array.isArray(events)) {
+    for (const e of events as Record<string, unknown>[]) {
+      if (!sessions.has(e.sessionId as string)) errors.push('sessionId가 존재하지 않는 이벤트가 있습니다.');
+    }
   }
-  for (const r of (d.reviews as Record<string, unknown>[])) {
-    if (!sessions.has(r.sessionId as string)) errors.push('sessionId가 존재하지 않는 외부 분석/시나리오가 있습니다.');
+  const reviews = d.reviews;
+  if (Array.isArray(reviews)) {
+    for (const r of reviews as Record<string, unknown>[]) {
+      if (!sessions.has(r.sessionId as string)) errors.push('sessionId가 존재하지 않는 외부 분석/시나리오가 있습니다.');
+    }
   }
   return { ok: errors.length === 0, errors: errors.slice(0, 5) };
 }
