@@ -1,8 +1,4 @@
-const shortsReveal = "motion-safe:animate-[shortsIn_0.45s_ease-out_both]";
-const shortsReveal2 = "motion-safe:animate-[shortsIn_0.45s_0.12s_ease-out_both]";
-const shortsReveal3 = "motion-safe:animate-[shortsIn_0.45s_0.24s_ease-out_both]";
-
- useEffect, useMemo, useState } from 'react';
+useEffect, useMemo, useState } from 'react';
 import { useApp } from '../app/store';
 import { Btn, Card, Empty, Field, NumInput, TextArea, TextInput } from '../components/ui';
 import { buildShortsReviewData, createDefaultShortsTimeline, extractHighlights, getNextEnabledShortsShotIndex } from '../services/promptService';
@@ -11,6 +7,10 @@ import { aiColor } from '../components/charts';
 import { optionLabel } from '../data/games';
 import { fmtSigned } from '../utils/format';
 import { Clapperboard, Copy, Lock, MoveDown, MoveUp, Skull } from 'lucide-react';
+
+const shortsReveal = "motion-safe:animate-[shortsIn_0.45s_ease-out_both]";
+const shortsReveal2 = "motion-safe:animate-[shortsIn_0.45s_0.12s_ease-out_both]";
+const shortsReveal3 = "motion-safe:animate-[shortsIn_0.45s_0.24s_ease-out_both]";
 
 const SLIDE_BG = [
   'linear-gradient(160deg,#1a2a4a 0%,#0b0f17 70%)',
