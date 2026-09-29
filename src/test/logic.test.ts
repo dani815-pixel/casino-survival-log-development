@@ -6,7 +6,7 @@ import {
 } from '../utils/statistics';
 import { validateBackup, validateRoundInput, validateSessionInput } from '../utils/validation';
 import { generateSpeech, playForRound } from '../services/aiService';
-import { buildParticipantRecommendationPrompt, getLatestDailyAnalysis, parseParticipantRecommendations, selectRandomMeetingParticipants } from '../services/promptService';
+import { buildParticipantRecommendationPrompt, getLatestDailyAnalysis, getPreviousEndedSession, parseParticipantRecommendations, selectRandomMeetingParticipants } from '../services/promptService';
 import { normalizeMeetingParticipants } from '../app/store';
 import { getGame } from '../data/games';
 import type { AIProfile, AIRoundRecord, DailySession, Round } from '../types';
@@ -510,6 +510,19 @@ describe('Meeting 참여자 선정', () => {
     expect(unknown.error).toContain('활성 AI');
   });
 
+  it('현재 세션을 제외하고 가장 최근 종료된 Daily Session을 이전 세션으로 선택한다', () => {
+    const previous = mkSession({ id: 'prev-1', status: 'ENDED', createdAt: 10, meetingParticipants: ['a1', 'a2'] });
+    const latestPrevious = mkSession({ id: 'prev-2', status: 'ENDED', createdAt: 20, meetingParticipants: ['a3'] });
+    const current = mkSession({ id: 'current', status: 'PLAYING', createdAt: 30 });
+    const result = getPreviousEndedSession([previous, current, latestPrevious], current.id);
+    expect(result?.id).toBe('prev-2');
+  });
+
+  it('이전 세션이 없으면 참가자 추천 기준 세션을 임의의 다른 세션으로 선택하지 않는다', () => {
+    const current = mkSession({ id: 'current', status: 'PLAYING', createdAt: 30 });
+    expect(getPreviousEndedSession([current], current.id)).toBeNull();
+  });
+
   it('참가자 추천 프롬프트는 후보 AI와 JSON 출력 규칙을 포함한다', () => {
     const bundle = {
       project: { id: 'p1', name: 'Test', startDate: '2026-01-01', startCapital: 1000, currency: 'USD', memo: '', status: 'ACTIVE' as const, createdAt: 1, updatedAt: 1 },
@@ -528,6 +541,17 @@ describe('Meeting 참여자 선정', () => {
     expect(prompt).toContain('전날 분석');
     expect(prompt).toContain('전날 시나리오');
     expect(prompt).toContain('"participants"');
+
+    const withPreviousParticipants = buildParticipantRecommendationPrompt(
+      bundle,
+      bundle.profiles,
+      '전일 분석',
+      '전일 시나리오',
+      ['a1', 'a2'],
+    );
+    expect(withPreviousParticipants).toContain('직전 회의 참여 AI');
+    expect(withPreviousParticipants).toContain('a1, a2');
+    expect(withPreviousParticipants).toContain('추천 기준 Daily Session 데이터');
   });
 });
 
