@@ -222,7 +222,7 @@ export default function ReviewPage() {
             setSelectionMode('RANDOM');
           }}><Shuffle size={15} /> 랜덤 선택</Btn>
           <Btn variant="ghost" onClick={() => {
-            setSelectedAI(app.settings.meeting.participants.filter((id) => aiProfiles.some((p) => p.active && p.id === id)));
+            setSelectedAI((session.meetingParticipants?.length ? session.meetingParticipants : app.settings.meeting.participants).filter((id) => aiProfiles.some((p) => p.active && p.id === id)));
             setSelectionMode('MANUAL');
           }}><Users size={15} /> 직접 선택</Btn>
         </div>
