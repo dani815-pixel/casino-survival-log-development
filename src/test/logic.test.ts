@@ -402,6 +402,54 @@ describe('AI 랭킹', () => {
 
 // ===== AI 커리어 / 결측 기록 / 랭킹 회귀 검증 =====
 
+describe('AI 일일 통계와 프로젝트 누적 통계 분리', () => {
+  it('computeAIState는 전달받은 현재 세션 기록만 사용하고 다른 날짜의 기록을 섞지 않는다', () => {
+    const currentDay = [
+      mkAIRecord({ aiId: 'a1', sessionId: 'day2', roundId: 'd2r1', roundNumber: 1, resultPL: -10, bankrollAfter: 90 }),
+    ];
+    const otherDay = mkAIRecord({
+      aiId: 'a1', sessionId: 'day1', roundId: 'd1r5', roundNumber: 5,
+      resultPL: 100, bankrollAfter: 200,
+    });
+    const state = computeAIState('a1', [...currentDay, otherDay].filter((r) => r.sessionId === 'day2'), 100);
+    expect(state.rounds).toBe(1);
+    expect(state.betPL).toBe(-10);
+    expect(state.bankroll).toBe(90);
+    expect(state.pl).toBe(-10);
+  });
+
+  it('computeCareer는 여러 Daily Session의 P/L만 합산하고 bankroll은 누적 자산으로 만들지 않는다', () => {
+    const records = [
+      mkAIRecord({ aiId: 'a1', sessionId: 'day1', roundId: 'd1r1', roundNumber: 1, resultPL: 20, bankrollAfter: 120 }),
+      mkAIRecord({ aiId: 'a1', sessionId: 'day2', roundId: 'd2r1', roundNumber: 1, resultPL: -15, bankrollAfter: 85 }),
+      mkAIRecord({ aiId: 'a1', sessionId: 'day2', roundId: 'd2r2', roundNumber: 2, selection: null, virtualBet: 0, resultPL: 0, bankrollAfter: 85 }),
+    ];
+    const career = computeCareer('a1', records);
+    expect(career.sessions).toBe(2);
+    expect(career.totalRounds).toBe(3);
+    expect(career.virtualBetCount).toBe(2);
+    expect(career.virtualBetPL).toBe(5);
+    expect(career.careerPL).toBe(5);
+    expect(career.passes).toBe(1);
+  });
+
+  it('Daily Start가 바뀌어도 프로젝트 Career P/L은 이전 날짜의 bankroll을 이어붙이지 않는다', () => {
+    const day1 = [
+      mkAIRecord({ aiId: 'a1', sessionId: 'day1', roundNumber: 1, resultPL: 50, bankrollAfter: 150 }),
+    ];
+    const day2 = [
+      mkAIRecord({ aiId: 'a1', sessionId: 'day2', roundNumber: 1, resultPL: -20, bankrollAfter: 80 }),
+    ];
+    const day1State = computeAIState('a1', day1, 100);
+    const day2State = computeAIState('a1', day2, 100);
+    const career = computeCareer('a1', [...day1, ...day2]);
+    expect(day1State.bankroll).toBe(150);
+    expect(day2State.bankroll).toBe(80);
+    expect(day2State.pl).toBe(-20);
+    expect(career.careerPL).toBe(30);
+  });
+});
+
 describe('AI 커리어 통계', () => {
   it('PASS는 승패에 포함하지 않고, 탈락 이후 기록 공백도 패배로 만들지 않는다', () => {
     const records = [
