@@ -294,7 +294,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
     (input: svc.StartSessionInput) =>
       run(async () => {
         if (!project) return;
-        const previousSession = [...sessions].filter((s) => s.status === 'ENDED').sort((a, b) => b.createdAt - a.createdAt)[0];
+        const previousSession = [...sessions]
+          .filter((s) => s.projectId === project.id && s.status === 'ENDED')
+          .sort((a, b) => b.createdAt - a.createdAt)[0];
         await svc.startSession(project, input, previousSession);
         await loadProjectData(project.id);
         const aiCount = aiProfiles.filter((p) => p.active).length;
@@ -436,7 +438,20 @@ export function AppProvider({ children }: { children: ReactNode }) {
       if (session) {
         const updatedSession: DailySession = { ...session, meetingParticipants: selected, updatedAt: Date.now() };
         await db.put('sessions', updatedSession);
+        await db.put('events', {
+          id: uid(),
+          sessionId: session.id,
+          type: 'MEETING_PARTICIPANTS_SELECTED',
+          timestamp: Date.now(),
+          payload: {
+            method: 'MANUAL',
+            selectedAI: selected,
+            recommendations: [],
+            source: 'MEETING_ROOM',
+          },
+        });
         setSession(updatedSession);
+        await reloadChildren(updatedSession);
       }
       await updateSettings({ meeting: { ...settings.meeting, participants: selected } });
     },
