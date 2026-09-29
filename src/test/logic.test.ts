@@ -457,6 +457,23 @@ describe('Meeting 외부 AI 분석 연결', () => {
 
 // ===== Meeting 설정 / 프로젝트 격리 =====
 
+describe('Review 참가자 선택 상태', () => {
+  it('현재 Daily Session 참가자가 설정값보다 우선하고 최대 4명으로 정리된다', () => {
+    const session = mkSession({ meetingParticipants: ['a1', 'a2', 'a3', 'a4', 'a5'] });
+    const settingsParticipants = ['a6', 'a7'];
+    const activeIds = ['a1', 'a2', 'a3', 'a4', 'a5', 'a6'];
+    const current = session.meetingParticipants.length ? session.meetingParticipants : settingsParticipants;
+    expect(current.filter((id) => activeIds.includes(id)).slice(0, 4)).toEqual(['a1', 'a2', 'a3', 'a4']);
+  });
+
+  it('Daily Session 참가자가 없으면 설정 참가자를 fallback으로 사용한다', () => {
+    const session = mkSession({ meetingParticipants: [] });
+    const settingsParticipants = ['a3', 'a4'];
+    const current = session.meetingParticipants.length ? session.meetingParticipants : settingsParticipants;
+    expect(current).toEqual(['a3', 'a4']);
+  });
+});
+
 describe('Meeting Room 참가자 우선순위', () => {
   it('Daily Session 참가자가 설정값보다 우선한다', () => {
     const session = mkSession({ meetingParticipants: ['a1', 'a2'] });
