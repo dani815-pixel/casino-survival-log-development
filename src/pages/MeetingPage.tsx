@@ -39,12 +39,13 @@ function Character({ profile, state, speaking, bubble, showName, color, onClick 
 export default function MeetingPage() {
   const app = useApp();
   const { project, session, settings, aiProfiles, aiStates, aiRecords, rounds, game, reviews } = app;
+  const meetingParticipantIds = session?.meetingParticipants?.length ? session.meetingParticipants : settings.meeting.participants;
   const participants = useMemo(
-    () => settings.meeting.participants
+    () => meetingParticipantIds
       .map((id) => aiProfiles.find((p) => p.id === id))
       .filter((p): p is AIProfile => !!p && p.active)
       .slice(0, 4),
-    [settings.meeting.participants, aiProfiles],
+    [meetingParticipantIds, aiProfiles],
   );
   const others = useMemo(
     () => aiProfiles.filter((p) => p.active && !participants.some((x) => x.id === p.id)),
