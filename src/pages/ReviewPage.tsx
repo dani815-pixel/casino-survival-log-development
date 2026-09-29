@@ -1,9 +1,9 @@
 import { useMemo, useState } from 'react';
 import { useApp } from '../app/store';
 import { Btn, Card, Empty, Pill, TextArea, copyText } from '../components/ui';
-import { buildDailyAnalysisPrompt, buildScenarioPrompt, type PromptBundle } from '../services/promptService';
+import { buildDailyAnalysisPrompt, buildParticipantRecommendationPrompt, buildScenarioPrompt, selectRandomMeetingParticipants, type ParticipantRecommendation, type PromptBundle } from '../services/promptService';
 import { computeAllAIStates } from '../utils/statistics';
-import { ClipboardCopy, ClipboardPaste, FileText, RefreshCw, Sparkles, Trash2 } from 'lucide-react';
+import { Check, ClipboardCopy, ClipboardPaste, FileText, RefreshCw, Shuffle, Sparkles, Trash2, Users } from 'lucide-react';
 import { timeStr, dateStr } from '../utils/format';
 
 export default function ReviewPage() {
@@ -13,10 +13,16 @@ export default function ReviewPage() {
   const [scenarioOpen, setScenarioOpen] = useState(false);
   const [paste, setPaste] = useState('');
   const [expanded, setExpanded] = useState<string | null>(null);
+  const [selectionMode, setSelectionMode] = useState<'RANDOM' | 'MANUAL' | 'EXTERNAL_AI' | 'HYBRID'>('HYBRID');
+  const [selectedAI, setSelectedAI] = useState<string[]>([]);
+  const [recommendationPaste, setRecommendationPaste] = useState('');
+  const [recommendations, setRecommendations] = useState<ParticipantRecommendation[]>([]);
+  const [recommendationOpen, setRecommendationOpen] = useState(false);
 
-  const analysisReviews = reviews.filter((r) => r.kind === 'DAILY_ANALYSIS');
-  const scenarioReviews = reviews.filter((r) => r.kind === 'SCENARIO');
+  const analysisReviews = reviews.filter((r) => r.kind === 'DAILY_ANALYSIS').sort((a, b) => b.createdAt - a.createdAt);
+  const scenarioReviews = reviews.filter((r) => r.kind === 'SCENARIO').sort((a, b) => b.createdAt - a.createdAt);
   const latestAnalysis = analysisReviews[0] ?? null;
+  const latestScenario = scenarioReviews[0] ?? null;
 
   const bundle: PromptBundle | null = useMemo(() => {
     if (!project || !session || !game) return null;
@@ -33,6 +39,10 @@ export default function ReviewPage() {
   const analysisPrompt = useMemo(
     () => (bundle ? buildDailyAnalysisPrompt(bundle, settings.promptTemplates.analysis) : ''),
     [bundle, settings.promptTemplates.analysis],
+  );
+  const participantPrompt = useMemo(
+    () => (bundle ? buildParticipantRecommendationPrompt(bundle, aiProfiles.filter((p) => p.active), latestAnalysis?.rawText ?? '', latestScenario?.rawText ?? '') : ''),
+    [bundle, aiProfiles, latestAnalysis, latestScenario],
   );
   const scenarioPrompt = useMemo(
     () => (bundle && latestAnalysis ? buildScenarioPrompt(bundle, settings.promptTemplates.scenario, latestAnalysis.rawText) : ''),
@@ -123,6 +133,82 @@ export default function ReviewPage() {
             ))}
           </div>
         )}
+      </Card>
+
+      {/* 3. Next Meeting AI Selection */}
+      <Card title="3. 다음 회의 AI 선정" right={<Pill tone="good">최대 4명</Pill>}>
+        <p className="mb-3 text-[11px] leading-relaxed text-slate-500">
+          랜덤으로 선정하거나 외부 AI 추천을 참고해 직접 수정할 수 있습니다. 외부 AI 추천은 현재 세션의 분석/시나리오와 활성 AI 프로필을 기준으로 합니다.
+        </p>
+        <div className="grid grid-cols-2 gap-2">
+          <Btn variant="ghost" onClick={() => {
+            const ids = selectRandomMeetingParticipants(aiProfiles.filter((p) => p.active).map((p) => p.id));
+            setSelectedAI(ids);
+            setSelectionMode('RANDOM');
+          }}><Shuffle size={15} /> 랜덤 선택</Btn>
+          <Btn variant="ghost" onClick={() => {
+            setSelectedAI(app.settings.meeting.participants.filter((id) => aiProfiles.some((p) => p.active && p.id === id)));
+            setSelectionMode('MANUAL');
+          }}><Users size={15} /> 직접 선택</Btn>
+        </div>
+        <div className="mt-2 flex gap-2">
+          <Btn variant="primary" className="flex-1" onClick={() => setRecommendationOpen((v) => !v)}>
+            <Sparkles size={15} /> {recommendationOpen ? '추천 닫기' : '외부 AI 추천'}
+          </Btn>
+          <Btn variant="gold" className="flex-1" disabled={selectedAI.length === 0} onClick={() => {
+            void app.selectMeetingParticipants(selectionMode, selectedAI, recommendations).then((ok) => {
+              if (ok) setSelectedAI(app.settings.meeting.participants);
+            });
+          }}><Check size={15} /> 최종 확정</Btn>
+        </div>
+        {recommendationOpen && (
+          <div className="mt-3 space-y-2">
+            <div className="flex gap-2">
+              <Btn variant="gold" className="flex-1" onClick={() => copy(participantPrompt, '참가자 추천 프롬프트')} disabled={!bundle}>
+                <ClipboardCopy size={15} /> 추천 Prompt 복사
+              </Btn>
+            </div>
+            <TextArea value={recommendationPaste} onChange={(e) => setRecommendationPaste(e.target.value)} placeholder='외부 AI의 JSON 결과를 붙여넣으세요. 예: {"participants":[{"aiId":"AI01","reason":"..."}]}' className="min-h-[100px]" />
+            <Btn className="w-full" onClick={() => {
+              try {
+                const parsed = JSON.parse(recommendationPaste) as { participants?: ParticipantRecommendation[] };
+                const valid = Array.isArray(parsed.participants)
+                  ? parsed.participants.filter((x) => x && typeof x.aiId === 'string' && typeof x.reason === 'string' && aiProfiles.some((p) => p.active && p.id === x.aiId)).slice(0, 4)
+                  : [];
+                if (!valid.length) throw new Error('유효한 AI 추천이 없습니다.');
+                setRecommendations(valid);
+                setSelectedAI(valid.map((x) => x.aiId));
+                setSelectionMode('EXTERNAL_AI');
+                setRecommendationPaste('');
+                app.notify('외부 AI 추천을 불러왔습니다. 확인 후 최종 확정하세요.');
+              } catch {
+                app.notify('추천 JSON 형식을 확인하세요.');
+              }
+            }}>추천 결과 불러오기</Btn>
+            {recommendations.length > 0 && (
+              <div className="space-y-1.5">
+                {recommendations.map((r) => (
+                  <button key={r.aiId} type="button" className="w-full rounded-lg bg-[#0c1220] p-2 text-left ring-1 ring-white/10" onClick={() => setSelectedAI((prev) => prev.includes(r.aiId) ? prev.filter((id) => id !== r.aiId) : prev.length < 4 ? [...prev, r.aiId] : prev)}>
+                    <div className="flex items-center gap-2 text-xs font-bold text-slate-200">
+                      <span className={selectedAI.includes(r.aiId) ? 'text-emerald-300' : 'text-slate-500'}>{selectedAI.includes(r.aiId) ? '☑' : '☐'}</span>
+                      {aiProfiles.find((p) => p.id === r.aiId)?.name ?? r.aiId}
+                    </div>
+                    <p className="mt-1 text-[10px] text-slate-500">{r.reason}</p>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+        <div className="mt-3 space-y-1.5">
+          {aiProfiles.filter((p) => p.active).map((p) => (
+            <button key={p.id} type="button" className={`flex w-full items-center justify-between rounded-lg p-2 text-left ring-1 ${selectedAI.includes(p.id) ? 'bg-emerald-500/10 ring-emerald-400/30' : 'bg-[#0c1220] ring-white/10'}`} onClick={() => setSelectedAI((prev) => prev.includes(p.id) ? prev.filter((id) => id !== p.id) : prev.length < 4 ? [...prev, p.id] : prev)}>
+              <span className="text-xs font-bold text-slate-200">{p.name}</span>
+              <span className="text-[10px] text-slate-500">{p.role}</span>
+            </button>
+          ))}
+        </div>
+        <p className="mt-2 text-[10px] text-slate-600">선택 {selectedAI.length}/4 · 확정 전에는 현재 회의 참여자가 변경되지 않습니다.</p>
       </Card>
 
       {/* 3. Next-Day Scenario */}
