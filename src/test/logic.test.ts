@@ -189,6 +189,18 @@ describe('라운드/세션 검증', () => {
     const errs = validateSessionInput({ casino: 'A', gameId: 'dragon-tiger', table: 'T', startBalance: -5, stopLoss: null, winCut: null }, true);
     expect(errs.length).toBeGreaterThan(0);
   });
+  it('Stop Loss가 Daily Start보다 크면 거부한다', () => {
+    const errs = validateSessionInput({ casino: 'A', gameId: 'dragon-tiger', table: 'T', startBalance: 100, stopLoss: 150, winCut: null }, true);
+    expect(errs.some((e) => e.includes('Stop Loss') && e.includes('시작 금액'))).toBe(true);
+  });
+  it('Stop Loss가 Daily Start와 같으면 허용한다', () => {
+    const errs = validateSessionInput({ casino: 'A', gameId: 'dragon-tiger', table: 'T', startBalance: 100, stopLoss: 100, winCut: null }, true);
+    expect(errs.some((e) => e.includes('Stop Loss'))).toBe(false);
+  });
+  it('Win Cut은 Daily Start보다 커도 허용한다', () => {
+    const errs = validateSessionInput({ casino: 'A', gameId: 'dragon-tiger', table: 'T', startBalance: 100, stopLoss: null, winCut: 500 }, true);
+    expect(errs.some((e) => e.includes('Win Cut'))).toBe(false);
+  });
 });
 
 // ===== AI 가상 플레이 / Pass / 탈락 =====
