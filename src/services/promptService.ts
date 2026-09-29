@@ -151,6 +151,16 @@ export function createDefaultShortsTimeline(duration = 30): ShortsTimeline {
   return { shots, totalDuration: safeDuration };
 }
 
+export function getNextEnabledShortsShotIndex(
+  shots: ShortsShot[],
+  currentIndex: number,
+): number | null {
+  for (let i = Math.max(0, currentIndex + 1); i < shots.length; i += 1) {
+    if (shots[i]?.enabled) return i;
+  }
+  return null;
+}
+
 export function normalizeShortsTimeline(shots: ShortsShot[]): ShortsTimeline {
   const normalized = shots.filter(Boolean).map((shot, index) => ({
     ...shot, order: index,
