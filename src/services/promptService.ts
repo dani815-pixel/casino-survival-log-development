@@ -37,7 +37,8 @@ export function buildSessionDataSection(b: PromptBundle): string {
 
   L.push('■ 기본 정보');
   L.push(`- 프로젝트: ${b.project.name} / 날짜: ${b.session.date} / 카지노: ${b.session.casino}`);
-  L.push(`- 게임: ${g.name} / 테이블: ${b.session.table} / Daily Start: $${b.session.startBalance}`);
+  L.push(`- 게임: ${g.name} / 테이블: ${b.session.table} / Daily Start: ${b.session.startBalance}`);
+  L.push(`- 회의 참여 AI: ${b.session.meetingParticipants.length ? b.session.meetingParticipants.join(', ') : '미정/기록 없음'}`);
   L.push(`- 현재 사용자 잔액: $${stats.currentBalance} (오늘 P/L ${money(stats.actualProfitLoss, b)}, ${stats.dailyReturn}%)`);
   L.push(`- 총 라운드: ${total} / 예측 기록: ${stats.predictionCount} / 실제 베팅: ${stats.actualBetCount}`);
   L.push(`- 예측 적중률: ${stats.predictionHitRate}% (${stats.predictionHits}/${stats.predictionCount}) / 베팅 승률: ${stats.actualBetWinRate}%`);
@@ -167,9 +168,14 @@ export function parseParticipantRecommendations(
 export function getPreviousEndedSession(
   sessions: DailySession[],
   currentSessionId: string,
+  currentProjectId?: string,
 ): DailySession | null {
   return [...sessions]
-    .filter((s) => s.id !== currentSessionId && s.status === 'ENDED')
+    .filter((s) =>
+      s.id !== currentSessionId &&
+      s.status === 'ENDED' &&
+      (!currentProjectId || s.projectId === currentProjectId)
+    )
     .sort((a, b) => b.createdAt - a.createdAt)[0] ?? null;
 }
 
