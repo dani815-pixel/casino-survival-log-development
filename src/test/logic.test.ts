@@ -454,6 +454,33 @@ describe('Meeting 외부 AI 분석 연결', () => {
   });
 });
 
+// ===== Shorts / 외부 AI 분석 연결 =====
+
+describe('Shorts 외부 AI 분석 연결', () => {
+  it('현재 세션에서는 최신 Daily Analysis를 선택하고 Scenario는 제외한다', () => {
+    const reviews = [
+      { id: 'old', sessionId: 's1', kind: 'DAILY_ANALYSIS' as const, createdAt: 10, rawText: '오래된 분석', parsedSummary: '' },
+      { id: 'new', sessionId: 's1', kind: 'DAILY_ANALYSIS' as const, createdAt: 20, rawText: '최신 분석', parsedSummary: '' },
+      { id: 'other', sessionId: 's2', kind: 'DAILY_ANALYSIS' as const, createdAt: 30, rawText: '다른 세션', parsedSummary: '' },
+      { id: 'scenario', sessionId: 's1', kind: 'SCENARIO' as const, createdAt: 40, rawText: '시나리오', parsedSummary: '' },
+    ];
+    const current = reviews
+      .filter((r) => r.kind === 'DAILY_ANALYSIS' && r.sessionId === 's1')
+      .sort((a, b) => b.createdAt - a.createdAt)[0] ?? null;
+    expect(current?.rawText).toBe('최신 분석');
+  });
+
+  it('Daily Analysis가 없으면 Shorts 분석 데이터도 없어야 한다', () => {
+    const reviews = [
+      { id: 'scenario', sessionId: 's1', kind: 'SCENARIO' as const, createdAt: 40, rawText: '시나리오', parsedSummary: '' },
+    ];
+    const current = reviews
+      .filter((r) => r.kind === 'DAILY_ANALYSIS' && r.sessionId === 's1')
+      .sort((a, b) => b.createdAt - a.createdAt)[0] ?? null;
+    expect(current).toBeNull();
+  });
+});
+
 // ===== JSON Import 검증 =====
 
 describe('JSON Import 검증', () => {
