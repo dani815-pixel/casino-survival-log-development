@@ -6,7 +6,7 @@ import {
 } from '../utils/statistics';
 import { validateBackup, validateRoundInput, validateSessionInput } from '../utils/validation';
 import { generateSpeech, playForRound } from '../services/aiService';
-import { buildParticipantRecommendationPrompt, getLatestDailyAnalysis, selectRandomMeetingParticipants } from '../services/promptService';
+import { buildParticipantRecommendationPrompt, getLatestDailyAnalysis, parseParticipantRecommendations, selectRandomMeetingParticipants } from '../services/promptService';
 import { normalizeMeetingParticipants } from '../app/store';
 import { getGame } from '../data/games';
 import type { AIProfile, AIRoundRecord, DailySession, Round } from '../types';
@@ -468,6 +468,35 @@ describe('Meeting 참여자 선정', () => {
 
   it('활성 AI가 4명보다 적으면 존재하는 AI만 모두 반환한다', () => {
     expect(selectRandomMeetingParticipants(['a', 'b', 'c'], 4, () => 0.5)).toHaveLength(3);
+  });
+
+  it('외부 AI 추천 JSON은 활성 AI만 최대 4명으로 중복 없이 허용한다', () => {
+    const raw = JSON.stringify({
+      participants: [
+        { aiId: 'a1', reason: '분석 차별성이 있음' },
+        { aiId: 'a1', reason: '중복 추천' },
+        { aiId: 'inactive', reason: '비활성' },
+        { aiId: 'a2', reason: '최근 흐름 변화' },
+        { aiId: 'a3', reason: '다른 관점' },
+        { aiId: 'a4', reason: '추가 관점' },
+        { aiId: 'a5', reason: '5번째' },
+      ],
+    });
+    const result = parseParticipantRecommendations(raw, ['a1', 'a2', 'a3', 'a4', 'a5']);
+    expect(result.error).toBeNull();
+    expect(result.recommendations.map((x) => x.aiId)).toEqual(['a1', 'a2', 'a3', 'a4']);
+  });
+
+  it('잘못된 추천 JSON은 확정 가능한 추천으로 변환하지 않는다', () => {
+    const invalid = parseParticipantRecommendations('not-json', ['a1']);
+    expect(invalid.recommendations).toEqual([]);
+    expect(invalid.error).toContain('JSON');
+
+    const unknown = parseParticipantRecommendations(JSON.stringify({
+      participants: [{ aiId: 'unknown', reason: '없음' }],
+    }), ['a1']);
+    expect(unknown.recommendations).toEqual([]);
+    expect(unknown.error).toContain('활성 AI');
   });
 
   it('참가자 추천 프롬프트는 후보 AI와 JSON 출력 규칙을 포함한다', () => {
