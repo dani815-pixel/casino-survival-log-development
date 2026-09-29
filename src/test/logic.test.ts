@@ -6,7 +6,7 @@ import {
 } from '../utils/statistics';
 import { validateBackup, validateRoundInput, validateSessionInput } from '../utils/validation';
 import { generateSpeech, playForRound } from '../services/aiService';
-import { getLatestDailyAnalysis } from '../services/promptService';
+import { buildParticipantRecommendationPrompt, getLatestDailyAnalysis, selectRandomMeetingParticipants } from '../services/promptService';
 import { normalizeMeetingParticipants } from '../app/store';
 import { getGame } from '../data/games';
 import type { AIProfile, AIRoundRecord, DailySession, Round } from '../types';
@@ -456,6 +456,40 @@ describe('Meeting 외부 AI 분석 연결', () => {
 });
 
 // ===== Meeting 설정 / 프로젝트 격리 =====
+
+describe('Meeting 참여자 선정', () => {
+  it('랜덤 선정은 활성 AI 중 최대 4명을 중복 없이 반환한다', () => {
+    const ids = ['a', 'b', 'c', 'd', 'e', 'f'];
+    const selected = selectRandomMeetingParticipants(ids, 4, () => 0);
+    expect(selected).toHaveLength(4);
+    expect(new Set(selected).size).toBe(4);
+    expect(selected.every((id) => ids.includes(id))).toBe(true);
+  });
+
+  it('활성 AI가 4명보다 적으면 존재하는 AI만 모두 반환한다', () => {
+    expect(selectRandomMeetingParticipants(['a', 'b', 'c'], 4, () => 0.5)).toHaveLength(3);
+  });
+
+  it('참가자 추천 프롬프트는 후보 AI와 JSON 출력 규칙을 포함한다', () => {
+    const bundle = {
+      project: { id: 'p1', name: 'Test', startDate: '2026-01-01', startCapital: 1000, currency: 'USD', memo: '', status: 'ACTIVE' as const, createdAt: 1, updatedAt: 1 },
+      session: mkSession(),
+      game: dt,
+      rounds: [],
+      profiles: [mkProfile('a1', { name: 'AI01' }), mkProfile('a2', { name: 'AI02' })],
+      aiRecords: [],
+      aiStates: computeAllAIStates(['a1', 'a2'], [], 100),
+      currency: 'USD',
+      decimals: 2,
+    };
+    const prompt = buildParticipantRecommendationPrompt(bundle, bundle.profiles, '전날 분석', '전날 시나리오');
+    expect(prompt).toContain('AI01');
+    expect(prompt).toContain('AI02');
+    expect(prompt).toContain('전날 분석');
+    expect(prompt).toContain('전날 시나리오');
+    expect(prompt).toContain('"participants"');
+  });
+});
 
 describe('Meeting 참여자 설정', () => {
   it('이전 프로젝트 AI ID를 제거하고 현재 프로젝트 활성 AI로 기본값을 채운다', () => {
