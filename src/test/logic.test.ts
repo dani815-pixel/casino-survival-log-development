@@ -53,6 +53,39 @@ function mkAIRecord(over: Partial<AIRoundRecord>): AIRoundRecord {
 
 // ===== 정산 (P/L 계산) =====
 
+describe('세션 종료 요약과 프로젝트 누적 P/L 기준', () => {
+  it('수동 입력 종료잔액은 실제 P/L과 계산 종료잔액을 바꾸지 않는다', () => {
+    const session = mkSession({ startBalance: 100 });
+    const rounds = [
+      mkRound({ id: 'r1', roundNumber: 1, bettingAmount: 10, actualProfitLoss: 10 }),
+      mkRound({ id: 'r2', roundNumber: 2, bettingAmount: 10, actualProfitLoss: -10 }),
+    ];
+    const summary = buildSessionEndSummary(session, rounds, 150);
+    expect(summary.actualProfitLoss).toBe(0);
+    expect(summary.calculatedEndBalance).toBe(100);
+    expect(summary.endBalance).toBe(150);
+    expect(summary.endBalanceMismatch).toBe(true);
+  });
+
+  it('종료 세션의 저장된 P/L과 현재 세션의 계산 P/L을 프로젝트 누적값에 합산한다', () => {
+    const ended = mkSession({ id: 'day1', status: 'ENDED', actualProfitLoss: 30, endBalance: 999, calculatedEndBalance: 130 });
+    const active = mkSession({ id: 'day2', status: 'PLAYING', startBalance: 200 });
+    const activePL = -20;
+    expect(computeProjectCumulativePL([ended, active], 'day2', activePL)).toBe(10);
+  });
+
+  it('종료 시 입력한 잔액은 프로젝트 누적 P/L에 직접 반영되지 않는다', () => {
+    const ended = mkSession({
+      id: 'day1',
+      status: 'ENDED',
+      actualProfitLoss: 30,
+      endBalance: 500,
+      calculatedEndBalance: 130,
+    });
+    expect(computeProjectCumulativePL([ended], null, null)).toBe(30);
+  });
+});
+
 describe('종료 세션 라운드 변경 규칙', () => {
   it('ENDED 세션은 라운드 변경을 허용하지 않는다', () => {
     const session = mkSession({ status: 'ENDED' });
