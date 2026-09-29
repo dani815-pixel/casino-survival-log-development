@@ -37,7 +37,7 @@ function Character({ profile, state, speaking, bubble, showName, color, onClick 
 
 export default function MeetingPage() {
   const app = useApp();
-  const { project, session, settings, aiProfiles, aiStates, aiRecords, rounds, game } = app;
+  const { project, session, settings, aiProfiles, aiStates, aiRecords, rounds, game, reviews } = app;
   const participants = useMemo(
     () => settings.meeting.participants
       .map((id) => aiProfiles.find((p) => p.id === id))
@@ -53,6 +53,10 @@ export default function MeetingPage() {
   const [walkIdx, setWalkIdx] = useState(0);
   const turnRef = useRef(0);
 
+  const latestDailyAnalysis = useMemo(
+    () => reviews.find((r) => r.kind === 'DAILY_ANALYSIS')?.rawText ?? '',
+    [reviews],
+  );
   const rankedByPL = useMemo(() => rankAI(aiStates, 'pl'), [aiStates]);
   const lastRound = rounds.length ? rounds.reduce((m, r) => (r.roundNumber > m.roundNumber ? r : m), rounds[0]!) : null;
   const lastResultLabel = game && lastRound ? optionLabel(game, lastRound.actualResult) : undefined;
@@ -71,6 +75,7 @@ export default function MeetingPage() {
         resultLabel: lastResultLabel,
         lastPL: last ? last.resultPL : null,
         rank: rank || undefined,
+        externalAnalysis: latestDailyAnalysis,
       }),
     });
   };
@@ -87,7 +92,7 @@ export default function MeetingPage() {
     }, Math.max(2, settings.meeting.speed) * 1000);
     return () => window.clearInterval(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [settings.meeting.showBubbles, settings.meeting.speed, participants.map((p) => p.id).join(','), aiRecords.length, session?.status]);
+  }, [settings.meeting.showBubbles, settings.meeting.speed, participants.map((p) => p.id).join(','), aiRecords.length, session?.status, latestDailyAnalysis]);
 
   // 비참여자 중 한 명이 오피스를 걸어다님
   useEffect(() => {
