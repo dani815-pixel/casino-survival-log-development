@@ -128,6 +128,7 @@ describe('세션 종료 잔액 계산 (computedEndBalance)', () => {
     const s = buildSessionEndSummary(mkSession(), rounds, 130);
     expect(s.endBalance).toBe(130); // 사용자 입력값 보존 (강제 덮어쓰기 없음)
     expect(s.calculatedEndBalance).toBe(120); // 계산 잔액 별도 보존
+    expect(s.actualProfitLoss).toBe(20); // 실제 손익은 라운드의 베팅 P/L만 사용
     expect(s.endBalanceMismatch).toBe(true);
   });
   it('Prediction만 입력하면 predictionCount만 증가하고 actualBetCount는 증가하지 않는다', () => {
