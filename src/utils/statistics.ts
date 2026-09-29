@@ -35,13 +35,14 @@ export function computeUserStats(
   const losses = bets.filter((r) => (r.actualProfitLoss ?? 0) < 0).length;
   const pl = round2(sum(bets.map((r) => r.actualProfitLoss ?? 0)));
   const currentBalance = round2(session.startBalance + pl);
-  const finalBalance = session.endBalance ?? currentBalance;
+  // 오늘 손익과 수익률은 수동 입력 종료잔액이 아니라 실제 베팅 P/L을 기준으로 한다.
+  // 종료잔액은 별도의 기록/불일치 검증용 값이며 손익 통계의 원천이 아니다.
   return {
     startBalance: session.startBalance,
     currentBalance,
     endBalance: session.endBalance,
-    todayPL: round2(finalBalance - session.startBalance),
-    dailyReturn: session.startBalance > 0 ? round2(((finalBalance - session.startBalance) / session.startBalance) * 100) : 0,
+    todayPL: pl,
+    dailyReturn: session.startBalance > 0 ? round2((pl / session.startBalance) * 100) : 0,
     totalRounds: rounds.length,
     predictionCount: preds.length,
     predictionHits,
