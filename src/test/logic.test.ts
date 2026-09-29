@@ -305,6 +305,44 @@ describe('AI 가상 플레이', () => {
     expect(out3).toHaveLength(0); // 탈락 후 기록 없음 — loss로 처리하지 않음
   });
 
+  it('라운드 재생성 시 기존 라운드 기록을 제외하면 bankroll이 정확히 이어진다', () => {
+    const first = mkAIRecord({
+      aiId: 'a1',
+      roundId: 'r1',
+      roundNumber: 1,
+      resultPL: 10,
+      bankrollAfter: 110,
+    });
+    const correctedRound = mkRound({ id: 'r2', roundNumber: 2, actualResult: 'tiger' });
+    const out = playForRound({
+      profiles: [aggressive],
+      game: dt,
+      session: mkSession({ startBalance: 100 }),
+      round: correctedRound,
+      allRecords: [first],
+      prevResults: ['dragon'],
+      rng: () => 0.1,
+    });
+    expect(out).toHaveLength(1);
+    expect(out[0]!.bankrollAfter).toBeLessThan(110);
+    expect(out[0]!.roundId).toBe('r2');
+    expect(out[0]!.roundNumber).toBe(2);
+  });
+
+  it('삭제된 마지막 라운드는 이후 AI 상태 계산에 포함되지 않는다', () => {
+    const first = mkAIRecord({
+      aiId: 'a1',
+      roundId: 'r1',
+      roundNumber: 1,
+      resultPL: 10,
+      bankrollAfter: 110,
+    });
+    const afterDelete = computeAIState('a1', [first], 100);
+    expect(afterDelete.rounds).toBe(1);
+    expect(afterDelete.careerPL).toBe(10);
+    expect(afterDelete.bankroll).toBe(110);
+  });
+
   it('AI 상태(dyn)는 연승/연패를 반영한다', () => {
     const wins = [1, 2, 3].map((n) => mkAIRecord({ roundNumber: n, resultPL: 5, bankrollAfter: 100 + n * 5 }));
     const dyn = computeDynamicState(wins);
